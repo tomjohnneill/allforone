@@ -1,0 +1,435 @@
+import React , {PropTypes} from 'react';
+import ReactDOM from 'react-dom';
+import { createContainer } from 'meteor/react-meteor-data';
+import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
+import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
+import RaisedButton from 'material-ui/RaisedButton';
+import TextField from 'material-ui/TextField'
+import LinearProgress from 'material-ui/LinearProgress';
+import Divider from 'material-ui/Divider';
+import {Tabs, Tab} from 'material-ui/Tabs';
+import { Session } from 'meteor/session';
+import FacebookProvider, { Comments } from 'react-facebook';
+import Dialog from 'material-ui/Dialog';
+import {Link, browserHistory} from 'react-router'
+import {Pledges} from '/imports/api/pledges.js';
+import ReactHelpers from 'react-helpers';
+import InfoIcon from '/imports/ui/components/infoicon.jsx';
+import DatePicker from 'material-ui/DatePicker';
+import Dropzone from 'react-dropzone';
+import SelectField from 'material-ui/SelectField';
+import MenuItem from 'material-ui/MenuItem';
+import FlatButton from 'material-ui/FlatButton'
+
+var removeMd = require('remove-markdown')
+
+const styles = {
+  box: {
+    backgroundColor: grey200,
+    marginTop: '10px',
+    marginBottom: '10px',
+    padding: '10px'
+  },
+  header: {
+    backgroundColor: 'white',
+    fontSize: '20pt',
+    fontWeight: 'bold',
+    padding: '10px',
+  },
+  cardTitle: {
+    display: 'flex',
+    marginTop: '10px'
+  },
+  bigTitle: {
+    width: '50%',
+    fontStyle: 'italic',
+    color: grey500
+  },
+  currentCommitments: {
+    textAlign: 'center',
+
+  },
+  targetCommitments: {
+    textAlign: 'center'
+  }
+
+}
+
+export class EditPledge extends React.Component{
+  constructor(props) {
+    super(props);
+    console.log(this.props)
+    this.state = {open: false}
+  }
+
+  componentWillMount() {
+  Slingshot.fileRestrictions("avatar", {
+    allowedFileTypes: ["image/png", "image/jpeg", "image/gif"],
+    maxSize: 2 * 500 * 500
+  });
+}
+
+
+generateSlug = (event) => {
+  var title = event.target.value
+  this.setState({slug: getSlug(title, {custom: {"'":""}}), title: title})
+  console.log(this.state)
+}
+
+changeContent = (event) => {
+  var content = event.target.value
+  this.setState({content: content})
+}
+
+handleDuration = (event, index, obj) => {
+  var duration = obj
+  this.setState({duration: duration})
+}
+
+handleWhat = (event) => {
+  var what = removeMd(event.target.value)
+  this.setState({what: what})
+}
+
+handleWhy = (event) => {
+  var why = removeMd(event.target.value)
+  this.setState({why: why})
+}
+
+handleHow = (event) => {
+  var how = removeMd(event.target.value)
+  this.setState({how: how})
+}
+
+handleTarget = (event) => {
+  var target = event.target.value
+  this.setState({target: target})
+}
+
+handleDeadline = (event, date) => {
+  var deadline = date.toISOString()
+  console.log(date)
+  this.setState({deadline: date})
+}
+
+submitPledge = (event) => {
+  var title = this.state.title ? this.state.title: this.props.pledge.title
+  var target = this.state.target ? this.state.target: this.props.pledge.target
+  var deadline = this.state.deadline ? this.state.deadline.toISOString() : this.props.pledge.deadline
+  var what = this.state.what ? this.state.what : this.props.pledge.what
+  var why = this.state.why ? this.state.why : this.props.pledge.why
+  var how = this.state.how ? this.state.how: this.props.pledge.how
+  var slug = this.state.slug? this.state.slug: this.props.pledge.slug
+  var picture = this.props.pledge.creatorPicture
+  var duration = this.state.duration ? this.state.duration : this.props.pledge.duration
+
+  if (title === 'Untitled Pledge' || title === '') {
+    Bert.alert('Your pledge needs a title')
+  }
+  else if (target === '' || target === undefined ) {
+    Bert.alert('Your pledge needs a target', 'danger')
+  } else if (duration === '' || duration === undefined) {
+    Bert.alert('Your pledge needs a duration', 'danger')
+  } else if (deadline === '' || deadline === undefined) {
+    Bert.alert('Your pledge needs a deadline', 'danger')
+  } else if (what === '' || what === undefined) {
+    Bert.alert("You need to provide a bit more detail on the 'What' tab", 'danger')
+  } else if (why === '' || why === undefined) {
+    Bert.alert("You need to provide a bit more detail on the 'Why' tab", 'danger')
+  } else if (how === '' || how === undefined) {
+    Bert.alert("You need to provide a bit more detail on the 'How' tab", 'danger')
+  } else {
+
+    var pledge = {
+      title: title,
+      target: target,
+      deadline: deadline,
+      what: what,
+      why: why,
+      how: how,
+      slug: slug,
+      creatorPicture: picture,
+      _id: this.props.params._id,
+      creatorId: Meteor.userId(),
+      creator: this.props.pledge.creator,
+      updated: this.props.pledge.updated,
+      pledgedUsers: this.props.pledge.pledgedUsers,
+      pledgeCount: this.props.pledge.pledgeCount,
+      duration: duration
+    }
+
+    console.log(pledge)
+
+    Meteor.call( 'savePledge', pledge, ( error, response ) => {
+      if ( error ) {
+        Bert.alert( error.reason, 'danger' );
+      } else {
+        Bert.alert( 'Pledge saved!', 'success' );
+        Meteor.call('recalculateScore', Meteor.userId())
+        browserHistory.push('/pages/pledges/' + slug + '/' + this.props.pledge._id)
+      }
+    });
+  }
+}
+
+getTags() {
+  let pledge = this.props.pledge;
+
+  if ( pledge && pledge.tags ) {
+    return pledge.tags.join( ', ' );
+  }
+}
+
+upload(acceptedFiles, rejectedFiles){
+  var metaContext = {pledgeId: this.props.pledge._id};
+  console.log(metaContext)
+  this.setState({loader: true})
+  var uploader = new Slingshot.Upload("UsersAvatar", metaContext);
+  uploader.send(acceptedFiles[0], function (error, downloadUrl) { // you can use refs if you like
+    if (error) {
+      // Log service detailed response
+      //console.error('Error uploading', uploader.xhr.response);
+      Bert.alert(error, 'danger'); // you may want to fancy this up when you're ready instead of a popup.
+    }
+    else {
+    Meteor.call('addPictureToPledge', downloadUrl, this.props.pledge._id)
+    // you will need this in the event the user hit the update button because it will remove the avatar url
+    this.setState({loader: false})
+  }
+  }.bind(this));
+}
+
+
+handleSubmit( event ) {
+  event.preventDefault();
+}
+
+handleDelete = (e) => {
+  e.preventDefault()
+  this.setState({open: true})
+}
+
+handleClose = (e) => {
+  e.preventDefault()
+  this.setState({open: false})
+}
+
+deletePledge = (e) => {
+  e.preventDefault()
+  Meteor.call('deletePledge', this.props.params._id, function(result, error) {
+    if (error) {
+      Bert.alert(error.reason, 'danger')
+    } else {
+      Bert.alert('Pledge deleted', 'success')
+      browserHistory.push('/pages/pledges')
+    }
+  })
+}
+
+render() {
+  console.log(this.state)
+
+  if ( !this.props.pledge ) { return <div />; }
+    else {
+      console.log(this.props.pledge)
+  return(
+  <div>
+      <div style={styles.box}>
+        <Card>
+          <CardHeader
+              title="My pledge"
+              subtitle={this.props.pledge.creator}
+              avatar={this.props.pledge.creatorPicture}
+            />
+          <CardMedia
+            overlay={<CardTitle title={<TextField name='title' multiLine={true}
+            defaultValue={this.state.title ? this.state.title : this.props.pledge.title === 'Untitled Pledge' ? '' : this.props.pledge.title}
+            onChange={this.generateSlug}
+            style={{color: 'white'}}
+            hintText='Enter pledge title'
+            textareaStyle={{color: 'white'}}
+            inputStyle={{color: 'white'}}/>}
+            subtitleStyle={{height: '40px'}}
+            subtitle={
+              <SelectField inputStyle={{color: 'white'}}
+            style={{color: 'white'}}
+            hintText='Duration'
+            labelStyle={{color: 'white'}}
+            hintStyle={{color: 'white'}}
+            onChange={this.handleDuration} value={this.state.duration ?
+              this.state.duration : this.props.duration ? this.props.duration : null}>
+              <MenuItem value={'Once'} primaryText="Once" />
+              <MenuItem value={'One Day'} primaryText="One Day" />
+              <MenuItem value={'One Week'} primaryText="One Week" />
+              <MenuItem value={'Two Weeks'} primaryText="Two Weeks" />
+              <MenuItem value={'One Month'} primaryText="One Month" />
+              <MenuItem value={'One Year'} primaryText="One Year" />
+            </SelectField>}
+           />}
+
+          >
+          <img src={this.props.pledge.coverPhoto === undefined ? '/images/white.png' : this.props.pledge.coverPhoto}/>
+          </CardMedia>
+          <CardTitle children={
+              <div>
+                <div style={styles.cardTitle}>
+                  <div style={styles.bigTitle}>
+                    Target:
+                  <div style={styles.smallTitle}>
+                    <TextField name='target' style={{width: '50%'}}
+                      defaultValue={this.state.target ? this.state.target: this.props.pledge.target}
+                      onChange={this.handleTarget}/> people
+                  </div>
+                  </div>
+                  <div style={styles.bigTitle}>
+                    Deadline:
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+
+                         <DatePicker value={this.state.deadline ? this.state.deadline : this.props.pledge.deadline} onChange={this.handleDeadline} style={{width: 'auto'}} hintText="Deadline" textFieldStyle={{width: 'auto'}}/>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }/>
+          <Divider/>
+
+          <CardText  children = {
+               <Tabs tabItemContainerStyle={{height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>
+                 <Tab label='What' buttonStyle={{height: '36px'}}>
+                   <TextField multiLine={true}
+                     onChange={this.handleWhat}
+                     name='what'
+                     hintText={"Give a little more detail about what you're doing, the 'rules' so to speak"}
+                     fullWidth={true} style={{backgroundColor: 'white'}}
+                     defaultValue={this.state.what ? this.state.what : this.props.pledge.what !== undefined ? this.props.pledge.what : ''}
+                     rows={6}/>
+                 </Tab>
+                 <Tab label='Why' buttonStyle={{height: '36px'}}>
+                   <TextField multiLine={true}
+                     onChange={this.handleWhy}
+                     hintText={'Explain why this problem is important, and how your pledge will help to contribute to the solution'}
+                     fullWidth={true} style={{backgroundColor: 'white'}}
+                     defaultValue={this.state.why ? this.state.why : this.props.pledge.why !== '' ? this.props.pledge.why : null} rows={6}/>
+                 </Tab>
+                 <Tab label='How' buttonStyle={{height: '36px'}}>
+                   <TextField multiLine={true}
+                     onChange={this.handleHow}
+                     hintText={'For a lot of people this will be the first page they see when they arrive here, they are unlikely to understand how pledges work. Help them out a bit.'}
+                     fullWidth={true} style={{backgroundColor: 'white'}}
+                     defaultValue={this.state.how ? this.state.how : this.props.pledge.how !== '' ? this.props.pledge.how : ''} rows={6}/>
+                 </Tab>
+                 <Tab label='Who' buttonStyle={{height: '36px'}}>
+                   <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                     Click join to see which (if any) of your friends have committed
+                   </div>
+                 </Tab>
+               </Tabs>
+            }
+
+          />
+        <div style={{padding: '16px'}}>
+          <Dropzone key={'photos'} onDrop={this.upload.bind(this)}  style={{}}>
+                {({ isDragActive, isDragReject }) => {
+                  let styles = {
+                    width: 'auto',
+                    height: 100,
+                    textAlign: 'center',
+                    justifyContent: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderWidth: 1.5,
+                    borderColor: grey500,
+                    borderStyle: 'dashed',
+                    borderRadius: 5,
+                    color: grey500,
+
+                  }
+
+                  const acceptedStyles = {
+                    ...styles,
+                    borderStyle: 'solid',
+                    borderColor: '#6c6',
+                    backgroundColor: '#eee'
+                  }
+
+                  const rejectStyles = {
+                    ...styles,
+                    borderStyle: 'solid',
+                    borderColor: '#c66',
+                    backgroundColor: '#eee'
+                  }
+
+                  if (isDragActive) {
+                    return (
+                      <div style={acceptedStyles}>
+                        File will be accepted
+                      </div>
+                    )
+                  }
+                  if (isDragReject) {
+                    return (
+                      <div style={rejectStyles}>
+                        File will be rejected
+                      </div>
+                    )
+                  }
+                  // Default case
+                  return (
+                    <div style={styles}>
+                      Drag and drop (or click) to upload a cover photo <br/> (please nothing copyrighted)
+                    </div>
+                  )
+                }}
+              </Dropzone>
+        </div>
+
+        <RaisedButton label='Save Pledge' onTouchTap={this.submitPledge} secondary={true} fullWidth={true}/>
+        <div style={{height: '20px'}}/>
+        <FlatButton label='Delete Pledge' onTouchTap={this.handleDelete} fullWidth={true}/>
+        </Card>
+      </div>
+      <Dialog
+
+          actions={[
+      <FlatButton
+        label="Cancel"
+        primary={true}
+        onTouchTap={this.handleClose}
+      />,
+      <FlatButton
+        label="Delete"
+        primary={true}
+        keyboardFocused={true}
+        onTouchTap={this.deletePledge}
+      />,
+    ]}
+          modal={false}
+          open={this.state.open}
+          onRequestClose={this.handleClose}
+        >
+        Are you sure you want to delete this pledge?
+        </Dialog>
+    </div>
+    );
+  }
+  }
+}
+
+
+
+
+
+EditPledge.propTypes = {
+  pledge: PropTypes.object.isRequired,
+  loading: PropTypes.bool.isRequired,
+};
+
+export default createContainer(({params}) => {
+  const subscriptionHandler = Meteor.subscribe("editor", params._id);
+  console.log(params)
+  console.log(Pledges.findOne({_id: params._id}))
+  return {
+    loading: !subscriptionHandler.ready(),
+    pledge: Pledges.findOne({_id: params._id}),
+  };
+}, EditPledge);

@@ -1,0 +1,25 @@
+{
+  "AWSAccessKeyId": "AKIAJOT6BWQQPGAPSG6A",
+  "AWSSecretAccessKey": "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",
+  "Region": "eu-west-2",
+  "TWILIO": {
+  "FROM": "+441204238669",
+  "SID": "AC1a0f639bc1f654f36eabd934c4f2e71f",
+  "TOKEN": "ac065e7cb9c9a1e4940892043cb747bd",
+  "ROOT_URL": "http://localhost:3000"
+},
+  "public": {
+  "FacebookAppId": "779040465595000",
+  "FacebookSecret": "c8f18368711efd6b9faabfb115452682",
+  "FacebookPageId": "117077928875496",
+  "FacebookPageAccessToken": "EAALEiH43qngBAAOMaoZAuAyL0FMzgqrxvqrEyxPJZBPMET1zbP07wOYla31VoeQz8ZC1nhXv5MJHXrF7BGx1k6IJpQsfZBwzi2Pukqpbqoy0GFhjzGYYNt3gAGnL2otikSicXEn2W1dV1tUxHOez95YdbZBty2isV0EPKCct33wZDZD",
+  "MAIL_URL": "smtp://tom%40idleapp.io:Tsinghua16@smtp.gmail.com:587/",
+  "onesignal" : {
+    "appId": "db74184b-6bca-4636-82bf-2677c54a9c39",
+    "webId": "web.onesignal.auto.0893d0c7-c315-4498-a086-d9071f0f29e9",
+    "api_key": "ODA4ZWFhMzEtMjliYi00MTc3LTlkZjAtN2IyZDc1ODRkNDFm"
+  },
+  "appId": "db74184b-6bca-4636-82bf-2677c54a9c39",
+  "webId": "web.onesignal.auto.0893d0c7-c315-4498-a086-d9071f0f29e9"
+  }
+}

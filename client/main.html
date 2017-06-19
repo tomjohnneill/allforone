@@ -1,0 +1,76 @@
+<head>
+  <link rel="manifest" href="/your_manifest.json">
+  <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
+  <script>
+    var OneSignal = window.OneSignal || [];
+
+  </script>
+  <script src="js/canvas-to-blob.min.js"></script>
+
+  <title>All For One</title>
+    <meta name="viewport" content="width=device-width" />
+    <meta property="og:type" content="article"/>
+    <meta property="og:image" content='https://www.allforone.io/images/splash.jpg'/>
+    <meta property="og:description" content="Want to make a difference to the planet, but don't want to do it alone?"/>
+  <style>
+  @import url('https://fonts.googleapis.com/css?family=Pacifico');
+  @import url('https://fonts.googleapis.com/css?family=Roboto');
+  @import url('https://fonts.googleapis.com/css?family=Special+Elite');
+  @import url('https://fonts.googleapis.com/css?family=Love+Ya+Like+A+Sister');
+  </style>
+
+  <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.css" />
+  <script src="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.js"></script>
+  <script>
+  window.addEventListener("load", function(){
+  window.cookieconsent.initialise({
+    "palette": {
+      "popup": {
+        "background": "#006699"
+      },
+      "button": {
+        "background": "#ffffff",
+        "text": "#000000"
+      }
+    },
+    "theme": "classic"
+  })});
+  </script>
+</head>
+
+<body>
+  <div id="fb-root"></div>
+
+
+  <div class='react' id="react-root"></div>
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId: Meteor.settings.public.FacebookAppId,
+        xfbml: true,
+        version: "v2.6"
+      });
+      console.log('something in the fb init worked')
+    FB.Event.subscribe('send_to_messenger', function(e) {
+        console.log("messenger_checkbox event");
+        console.log(e);
+        if (e.event == 'rendered') {
+            console.log("Plugin was rendered");
+        } else if (e.event == 'not_you') {
+            console.log("User clicked 'not you'");
+        } else if (e.event == 'hidden') {
+            console.log("Plugin was hidden");
+        }
+    });
+    console.log(FB)
+    console.log('This then worked as well')
+    };
+    (function(d, s, id){
+       var js, fjs = d.getElementsByTagName(s)[0];
+       if (d.getElementById(id)) { return; }
+       js = d.createElement(s); js.id = id;
+       js.src = "//connect.facebook.net/en_US/sdk.js";
+       fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+  </script>
+</body>
