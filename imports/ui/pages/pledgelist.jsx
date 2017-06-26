@@ -121,7 +121,8 @@ export class PledgeList extends React.Component{
         <div style={{height: '36px'}}/>
         <div>
         <RaisedButton
-          style={{position: 'fixed', bottom: '0px', zIndex: '100', maxWidth: '600px', width: '100%' }}
+          style={{position: 'fixed', bottom: '0px', zIndex: '100', maxWidth: '600px', width: '100%'
+          , visibility: this.props.hidden ? 'hidden' : 'visible'}}
           secondary={true}
           label='Add a new pledge' onTouchTap={this.handleCreatePledge}/>
         </div>
