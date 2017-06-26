@@ -13,6 +13,8 @@ import PledgeList from '../../ui/pages/pledgelist.jsx';
 import DynamicPledge from '../../ui/pages/dynamicpledge.jsx';
 import EditThread from '../../ui/pages/editthread.jsx';
 import Thread from '../../ui/pages/thread.jsx';
+import Community from '../../ui/pages/community.jsx';
+import {Interests} from '../../ui/pages/interests.jsx'
 
 import {Terms} from '../../ui/pages/terms.jsx';
 import {About } from '../../ui/pages/about.jsx';
@@ -34,6 +36,8 @@ Meteor.startup( () => {
         <Route path='/terms' component={Terms}/>
         <Route path='/testypage' component={TestyPage}/>
         <Route path='/privacypolicy' component={PrivacyPolicy}/>
+        <Route path='/community' component={Community}/>
+        <Route path='/interests' component={Interests}/>
         <Route path='/about' component={About}/>
         <Route path='/pages' component ={UserTabs} />
         <Route path='/pages/:tab' component={UserTabs}/>
