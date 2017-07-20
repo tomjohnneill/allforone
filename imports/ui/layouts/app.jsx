@@ -22,7 +22,8 @@ export const App = ( { children } ) => (
   <div>
   <MediaQuery minDeviceWidth={700}>
 
-  <div style={{backgroundColor: grey100,display: 'flex', flexDirection: 'column'
+  <div style={{backgroundColor: grey100,display: 'flex', flexDirection: 'column',display: '-webkit-flex',
+    WebkitFlexDirection: 'column'
     , alignItems: 'center'}}>
   <div style={{ maxWidth: '600px', width: '100%' , backgroundColor: 'white'
     , marginTop: '24px', marginBottom: '24px', minHeight: '90vh'}} >
