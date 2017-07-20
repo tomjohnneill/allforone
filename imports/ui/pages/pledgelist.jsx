@@ -68,6 +68,7 @@ export class PledgeList extends React.Component{
     console.log(id)
     console.log(slug)
     console.log(e)
+    Session.set('allforone', true)
     browserHistory.push('/pages/pledges/' + slug + '/' + id)
 
   }
@@ -107,9 +108,10 @@ export class PledgeList extends React.Component{
 
               leftAvatar={pledge.coverPhoto === undefined ? <Avatar>{pledge.title.charAt(0)}</Avatar> : <Avatar src={pledge.coverPhoto}/>}/>
             <div style={{marginLeft: '72px', paddingBottom: '10px'}}>
-          <LinearProgress color={amber500} mode="determinate"
-
+              <div style={{marginRight: '16px'}}>
+          <LinearProgress style={{marginRight: '16px'}} color={amber500} mode="determinate"
              value={pledge.pledgedUsers.length/pledge.target*100} />
+           </div>
            <div style={{marginTop: '10px'}}>
             {pledge.pledgedUsers.length} out of {pledge.target}
             </div>
@@ -143,7 +145,7 @@ export default createContainer(() => {
   const subscriptionHandler = Meteor.subscribe("pledgeList");
 
   return {
-    pledges: Pledges.find({title: {$ne: 'Untitled Pledge'}}, {sort: {pledgeCount: -1}}).fetch(),
+    pledges: Pledges.find({title: {$ne: 'Untitled Pledge'}, deadline: { $gte : new Date()}}, {sort: {pledgeCount: -1}}).fetch(),
     loading: !subscriptionHandler.ready()
   };
 }, PledgeList);

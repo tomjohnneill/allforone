@@ -106,6 +106,11 @@ handleTarget = (event) => {
   this.setState({target: target})
 }
 
+handleImpact = (event) => {
+  var impact = event.target.value
+  this.setState({impact: impact})
+}
+
 handleDeadline = (event, date) => {
   var deadline = date.toISOString()
   console.log(date)
@@ -122,6 +127,7 @@ submitPledge = (event) => {
   var slug = this.state.slug? this.state.slug: this.props.pledge.slug
   var picture = this.props.pledge.creatorPicture
   var duration = this.state.duration ? this.state.duration : this.props.pledge.duration
+  var impact = this.state.impact ? this.state.impact: this.props.pledge.impact ? this.props.pledge.impact : ''
 
   if (title === 'Untitled Pledge' || title === '') {
     Bert.alert('Your pledge needs a title')
@@ -155,7 +161,8 @@ submitPledge = (event) => {
       updated: this.props.pledge.updated,
       pledgedUsers: this.props.pledge.pledgedUsers,
       pledgeCount: this.props.pledge.pledgeCount,
-      duration: duration
+      duration: duration,
+      impact: impact
     }
 
     console.log(pledge)
@@ -292,6 +299,16 @@ render() {
               </div>
             }/>
           <Divider/>
+
+          <CardTitle children={
+          <div>
+            <TextField name='impact'
+              fullWidth={true}
+              hintText='A quick summary of the total impact of this pledge'
+              defaultValue={this.state.impact ? this.state.impact: this.props.pledge.impact }
+              onChange={this.handleImpact}/>
+          </div>
+        }/>
 
           <CardText  children = {
                <Tabs tabItemContainerStyle={{height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>

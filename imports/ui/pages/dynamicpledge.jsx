@@ -31,6 +31,19 @@ import CircularProgress from 'material-ui/CircularProgress';
 import {Helmet} from "react-helmet";
 import { DocHead } from 'meteor/kadira:dochead';
 
+
+ function querystring() {
+  var k, pair, qs, v, _i, _len, _ref, _ref1;
+  qs = {};
+  _ref = window.location.search.replace("?", "").split("&");
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    pair = _ref[_i];
+    _ref1 = pair.split("="), k = _ref1[0], v = _ref1[1];
+    qs[k] = v;
+  }
+  return qs;
+};
+
 const {
   FacebookShareButton,
   TwitterShareButton,
@@ -112,17 +125,34 @@ export class DynamicPledge extends React.Component {
     this.state = {open: false}
     console.log(Meteor.userId())
     if (Math.random() > 0.8) {Meteor.call('updateUserCount', this.props.params._id)}
+    console.log(querystring())
+    console.log(Session.get('allforone'))
+    if (!Session.get(this.props.params._id)) {
+      Meteor.call('logVisit', this.props.params._id, 'new', Session.get('allforone'), (err, res) => {
+        if (err) {
+          console.log(error)
+        } else {
+        console.log(res);
+        Session.set(this.props.params._id, res)
+        }
+      });
+    } else {
+      Meteor.call('logVisit', this.props.params._id, 'returning', Session.get('allforone'))
+    }
   }
 
   componentDidMount(props) {
     Meteor.call('countUsers', this.props.params._id)
   }
 
+
+
   handleFacebook = (e) => {
       console.log(this.props)
       var title = this.props.params.pledge
       var _id = this.props.params._id
       console.log(title + '   ' + _id)
+      Meteor.call('logSignUpClick', Session.get(this.props.params._id))
       e.preventDefault()
       if (Meteor.userId() === null) {
         Meteor.loginWithFacebook({ requestPermissions: ['email', 'public_profile', 'user_friends'], _id, title },function(error, result) {
@@ -196,6 +226,7 @@ export class DynamicPledge extends React.Component {
     return {__html: this.props.pledge.how.replace(/\n/g, "<br />")}
   }
 
+/*
   addOg = () => {
     var title = { property: "og:title", content:  this.props.pledge.title };
     var type = { property: "og:type", content: "article" };
@@ -215,12 +246,10 @@ export class DynamicPledge extends React.Component {
   componentDidMount(props) {
     this.addOg()
   }
+  */
 
   componentWillReceiveProps(nextProps) {
     if (!nextProps.loading && nextProps.user !== undefined && nextProps.user.justAddedPledge) {
-
-      this.addOg()
-
 
       console.log('Executing on will receive props')
       Meteor.call('assignPledgeToUser', nextProps.params._id, nextProps.params.pledge, function(error, result) {
@@ -240,7 +269,7 @@ export class DynamicPledge extends React.Component {
 
   componentWillUpdate(nextProps) {
     if (!nextProps.loading && nextProps.user !== undefined && nextProps.user.justAddedPledge) {
-      this.addOg()
+
       console.log('Excecuting on componentWillUpdate')
       Meteor.call('assignPledgeToUser',nextProps.params._id, nextProps.params.pledge, function(error, result) {
         if (error) {
@@ -258,12 +287,14 @@ export class DynamicPledge extends React.Component {
   }
 
   render () {
-    console.log(this.props)
-    console.log(this.props.params._id)
 
+    console.log(querystring())
 
-
-
+    if (!this.props.loading) {
+      console.log("I just agreed to " +this.props.pledge.title.toLowerCase() + " for " + this.props.pledge.duration.toLowerCase() + " - as long as " + (this.props.pledge.target-this.props.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?")
+      console.log(this.props.pledge.coverPhoto ? this.props.pledge.coverPhoto : 'https://www.allforone.io/splash.jpg')
+      console.log('https://www.allforone.io/pages/pledges/' + this.props.pledge.slug + '/' + this.props.pledge._id)
+    }
 
     return (
       <div>
@@ -314,7 +345,9 @@ export class DynamicPledge extends React.Component {
             </CardMedia>
             <CardTitle children={
                 <div>
-                  <LinearProgress color={amber500} mode="determinate" value={this.props.pledge.pledgeCount/this.props.pledge.target} />
+
+                  <LinearProgress  color={amber500} mode="determinate" value={this.props.pledge.pledgeCount/this.props.pledge.target*100} />
+
 
                   <div style={styles.cardTitle}>
                     <div style={styles.bigTitle}>
@@ -337,6 +370,12 @@ export class DynamicPledge extends React.Component {
             <div style={{color: grey500, padding: '16px'}}>
               All or nothing - either all {this.props.pledge.target} of us, or none of us do this.
             </div>
+            {this.props.pledge.impact ?
+                <div style={{paddingLeft: '16px'}}>
+                  <b>Total Impact: </b> {this.props.pledge.impact}
+                </div> :
+                <div/>
+            }
             <CardText  children = {
                  <Tabs tabItemContainerStyle={{height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>
                    <Tab label='What' buttonStyle={{height: '36px'}}>
@@ -387,7 +426,7 @@ export class DynamicPledge extends React.Component {
                       <FacebookIcon size={36} round={true}/>
                   </div>}
                     url = {'https://www.allforone.io/pages/pledges/' + this.props.pledge.slug + '/' + this.props.pledge._id}
-                    title={"What if " + this.props.pledge.target +" people decided to change the world?"} description={"I just agreed to " +this.props.pledge.title.toLowerCase() + " for " + this.props.pledge.duration.toLowerCase() + " - as long as " + (this.props.pledge.target-this.props.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
+                    title={this.props.pledge.title} description={"I just agreed to " +this.props.pledge.title.toLowerCase() + " for " + this.props.pledge.duration.toLowerCase() + " - as long as " + (this.props.pledge.target-this.props.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
                     picture = {this.props.pledge.coverPhoto ? this.props.pledge.coverPhoto : 'https://www.allforone.io/splash.jpg'}
                     />
                   <div style={{width: '10px'}}></div>
@@ -412,9 +451,7 @@ export class DynamicPledge extends React.Component {
               </div>}
             </CardActions>
           </Card>
-          <FacebookProvider appId={Meteor.settings.public.FacebookAppId}>
-            <Comments href="'https://www.allforone.io/pages/pledges/' + this.props.pledge.slug + '/' + this.props.pledge._id" />
-          </FacebookProvider>
+
           <Dialog
               title="The planet is screwed"
               modal={false}
@@ -426,6 +463,11 @@ export class DynamicPledge extends React.Component {
         </div>
       </DocumentTitle >
       }
+      <div>
+      <FacebookProvider appId={Meteor.settings.public.FacebookAppId}>
+        <Comments href={'https://www.allforone.io' +browserHistory.getCurrentLocation().pathname} />
+      </FacebookProvider>
+      </div>
       </div>
     )
   }

@@ -24,7 +24,8 @@ import {Pledges} from '/imports/api/pledges.js';
 import Leaderboard from '/imports/ui/components/leaderboard.jsx';
 import SocialLeaderboard from '/imports/ui/components/socialleaderboard.jsx';
 import Streaks from '/imports/ui/components/streaks.jsx';
-import Badges from '/imports/ui/components/badges.jsx'
+import Badges from '/imports/ui/components/badges.jsx';
+import SuggestionList from '/imports/ui/components/suggestionlist.jsx';
 import ExpandMore from 'material-ui/svg-icons/navigation/expand-more';
 import DocumentTitle from 'react-document-title';
 import IconButton from 'material-ui/IconButton';
@@ -35,7 +36,10 @@ import CircularProgress from 'material-ui/CircularProgress';
 import { Accounts } from 'meteor/accounts-base';
 import Publish from 'material-ui/svg-icons/editor/publish';
 import InfoIcon from '/imports/ui/components/infoicon.jsx';
+import ChartistGraph from 'react-chartist';
+import Chartist from 'chartist'
 
+require('chartist-plugin-legend');
 
 const FacebookIcon = generateShareIcon('facebook');
 const TwitterIcon = generateShareIcon('twitter');
@@ -164,6 +168,7 @@ export class Profile extends Component {
 
   handleMoreDetail(id, slug, event) {
     event.preventDefault()
+    Session.set('allforone', true)
     browserHistory.push(`/pages/pledges/${ slug }/${id}`)
   }
 
@@ -238,7 +243,101 @@ export class Profile extends Component {
     Meteor.call('sendTextMessage', '117077928875496', 'Hello there')
   }
 
+  handleFriendClick(_id, e) {
+    e.preventDefault()
+    var friend = Meteor.users.findOne({'services.facebook.id': _id})
+    browserHistory.push('/profile/' + friend._id)
+  }
+
   render () {
+/*
+    if (!this.props.loading) {
+      var today = new Date()
+      today.setHours(0,0,0,0)
+      var i
+      var previousResults = false
+      var totalWeek = []
+      var friendWeek = []
+      var createdWeek = []
+      var suggestionWeek = []
+      if (this.props.thisUser.influence) {
+        friendWeek[6] = this.props.thisUser.influence[this.props.thisUser.influence.length-1].pledgeFriendInfluence
+        createdWeek[6] = this.props.thisUser.influence[this.props.thisUser.influence.length-1].pledgeCreatedInfluence
+        suggestionWeek[6] = this.props.thisUser.influence[this.props.thisUser.influence.length-1].suggestionInfluence
+        totalWeek[6] = this.props.thisUser.influence[this.props.thisUser.influence.length-1].totalInfluence
+        for (i=5;i >= 0; i--) {
+          var day = today - ((6-i) * 1000 * 60 * 60 * 24)
+          var entry = this.props.thisUser.influence.find(x => x.date.setHours(0,0,0,0) === day)
+          if (entry && entry.date) {
+            totalWeek[i] = entry.totalInfluence
+            friendWeek[i] = entry.pledgeFriendInfluence
+            createdWeek[i] = entry.pledgeCreatedInfluence
+            suggestionWeek[i] = entry.suggestionInfluence
+            previousResults = true
+          } else {
+            totalWeek[i] = null
+            friendWeek[i] = null
+            createdWeek[i] = null
+            suggestionWeek[i] = null
+          }
+        }
+        if (!previousResults) {
+          var early = today - ((6) * 1000 * 60 * 60 * 24)
+          var entry = this.props.thisUser.influence.find(x => x.date.setHours(0,0,0,0) < day)
+          if (entry) {
+            totalWeek[0] = entry.totalInfluence
+            friendWeek[0] = entry.pledgeFriendInfluence
+            createdWeek[0] = entry.pledgeCreatedInfluence
+            suggestionWeek[0] = entry.suggestionInfluence
+          } else {
+            totalWeek[0] = 0
+            friendWeek[0] = 0
+            createdWeek[0] = 0
+            suggestionWeek[0] = 0
+          }
+        }
+      }
+    }
+    console.log(totalWeek)
+
+    var labels = []
+    var j
+    var today = new Date()
+    var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri','Sat']
+    today.setHours(0,0,0,0)
+    for (j=6;j>=0;j--) {
+      var day = today - ((6-j) * 1000 * 60 * 60 * 24)
+      console.log(day)
+      var date = new Date(day)
+      console.log(date)
+      labels[j] = days[date.getDay()]
+    }
+
+    var data = {
+      labels: labels,
+      series: [
+        totalWeek, friendWeek, createdWeek, suggestionWeek
+      ],
+
+    };
+
+    var options = {
+      low: 0,
+      lineSmooth: Chartist.Interpolation.cardinal({
+        fillHoles: true,
+      }),
+      fullWidth: true,
+      axisX:  { showGrid: false },
+      plugins: [
+        Chartist.plugins.legend({
+          legendNames: ['Total', 'Friends joining pledges', 'People joining pledges you created', 'Your suggestions people like']
+          , position: 'bottom'
+        })
+      ]
+    };
+
+    var type = 'Line'
+    */
     if (this.props.justAddedPledge !== undefined && this.props.user && this.props.user.OneSignalUserId === undefined)
     {clearTimeout(this.carousel)}
 
@@ -392,7 +491,7 @@ export class Profile extends Component {
                                       <FacebookIcon size={36} round={true}/>
                                   </div>}
                                     url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                                    title={"What if " + pledge.target +" people decided to change the world?"} description={"I just agreed to " + pledge.title + " for " + pledge.duration + " - as long as " + (pledge.target-pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
+                                    title={pledge.title} description={"I just agreed to " + pledge.title + " for " + pledge.duration + " - as long as " + (pledge.target-pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
                                     picture = {pledge.coverPhoto ? pledge.coverPhoto : 'https://www.allforone.io/splash.jpg'}
                                     />
                                   <div style={{width: '10px'}}></div>
@@ -464,7 +563,7 @@ export class Profile extends Component {
                                       <FacebookIcon size={36} round={true}/>
                                   </div>}
                                     url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                                    title={"What if " + pledge.target +" people decided to change the world?"} description={"I just agreed to " + pledge.title + " for " + pledge.duration + " - as long as " + (pledge.target-pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
+                                    title={pledge.title} description={"I just agreed to " + pledge.title + " for " + pledge.duration + " - as long as " + (pledge.target-pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
                                     picture = {pledge.coverPhoto ? pledge.coverPhoto : 'https://www.allforone.io/splash.jpg'}
                                     />
                                   <div style={{width: '10px'}}></div>
@@ -487,6 +586,13 @@ export class Profile extends Component {
                   <FlatButton label='Create New Pledge' onTouchTap={this.handleNewPledge} secondary={true} fullWidth={true}/>
                   </List>
                   </Card>
+
+                <Card style={{marginTop: '20px'}}>
+                    <Subheader>Suggestions</Subheader>
+                    <SuggestionList userId={Meteor.userId()}/>
+                </Card>
+
+
                   <Card style={{marginTop: '20px'}}>
                 <List>
                                     <Subheader>Your friends</Subheader>
@@ -500,7 +606,7 @@ export class Profile extends Component {
                         <IconButton tooltip={friend.first_name + ' ' + friend.last_name}
                           style={{height: '40px', width: '40px', padding: '0px'}}
                         iconStyle={{padding: '0px'}}>
-                        <Avatar key={friend.id} src={friend.picture.data.url} style={{marginLeft: '-10px'}}/>
+                        <Avatar key={friend.id} src={friend.picture.data.url} onTouchTap={this.handleFriendClick.bind(this, friend.id)} style={{marginLeft: '-10px'}}/>
                         </IconButton>
 
                       ))
@@ -533,6 +639,9 @@ export class Profile extends Component {
                     Pledges signed up to: {this.props.thisUser.score.pledge} points<br/>
                   Impact of your pledges: {this.props.thisUser.score.pledgeImpact} points<br/>
                 Popular threads: {this.props.thisUser.score.thread} points<br/>
+
+              {/*<ChartistGraph className='.ct-chart-line-legendnames' data={data} options={options} type={type} /> */}
+
                       </div>
                       </Tab>
                     </Tabs>
@@ -548,13 +657,14 @@ export class Profile extends Component {
               <Badges/>
               </div>
             </Card>
-
+            {/*
             <Card style={{marginTop: '20px'}}>
               <Subheader>Your streaks</Subheader>
               <div style={{padding: '0px 16px 16px 16px'}}>
               <Streaks/>
               </div>
             </Card>
+            */}
             <Dialog
               title='Can we post to Facebook for you?'
               modal={true}
@@ -587,7 +697,7 @@ export class Profile extends Component {
 
                   </div>}
                   url = {'https://www.allforone.io/pages/pledges/' + this.props.justAddedPledge + '/' + this.props.justAddedPledgeId}
-                  title={"What if " + justAddedPledgeTarget +" people decided to change the world?"} description={"I just agreed to "+ justAddedPledgeTitle.toLowerCase() +  " for " + justAddedPledgeDuration.toLowerCase() + " - as long as " + (justAddedPledgeTarget-justAddedPledgeCollection.pledgeCount).toString() + " more people do the same. Care to join me?"}
+                  title={justAddedPledgeTitle} description={"I just agreed to "+ justAddedPledgeTitle.toLowerCase() +  " for " + justAddedPledgeDuration.toLowerCase() + " - as long as " + (justAddedPledgeTarget-justAddedPledgeCollection.pledgeCount).toString() + " more people do the same. Care to join me?"}
                   picture = {justAddedPledgePicture ? justAddedPledgePicture : '/images/splash.jpg'}
                   />
                 <div style={{width: '10px'}}></div>

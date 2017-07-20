@@ -23,6 +23,7 @@ import KeyboardArrowDown from 'material-ui/svg-icons/hardware/keyboard-arrow-dow
 import IconButton from 'material-ui/IconButton';
 import TrendingFlat from 'material-ui/svg-icons/action/trending-flat';
 import StarRate from 'material-ui/svg-icons/toggle/star';
+import StarBorder from 'material-ui/svg-icons/toggle/star-border';
 import Clear from 'material-ui/svg-icons/content/clear';
 import CircularProgress from 'material-ui/CircularProgress';
 import Chip from 'material-ui/Chip';
@@ -30,10 +31,15 @@ import PlacesAutocomplete from 'react-places-autocomplete';
 import { geocodeByAddress, geocodeByPlaceId, getLatLng } from 'react-places-autocomplete';
 import TextField from 'material-ui/TextField';
 import Infoicon from '/imports/ui/components/infoicon.jsx'
-import Snackbar from 'material-ui/Snackbar'
+import Snackbar from 'material-ui/Snackbar';
+import Event from 'material-ui/svg-icons/action/event';
+import Group from 'material-ui/svg-icons/social/group';
+import Accessibility from 'material-ui/svg-icons/action/accessibility';
+import AccessTime from 'material-ui/svg-icons/device/access-time';
+import LocationOn from 'material-ui/svg-icons/communication/location-on';
 
+var moment = require('moment');
 
-const getUrls = require('get-urls');
 
 const styles = {
   box: {
@@ -50,6 +56,19 @@ const styles = {
   chip: {
         margin: 4,
       },
+      optionChip: {
+        margin: 8
+      },
+  image: {
+    padding: '5px',
+    borderRadius: '10px'
+  },
+  indiegogoImage: {
+    padding: '5px',
+    borderRadius: '10px',
+    maxHeight: '200px',
+    width: 'auto'
+  },
   message: {width: 'auto', maxWidth: '80%', backgroundColor: 'white', margin: '16px', padding: '10px', borderRadius: '10px'}
 }
 
@@ -73,6 +92,11 @@ export class Community extends React.Component{
     objDiv.scrollTop = objDiv.scrollHeight;
   }
 
+  handleScrapeHTML = (e) => {
+    e.preventDefault()
+    Meteor.call('scrapeExperiment', 'climate change')
+  }
+
 
   handleSnackbarClose = () => {
     this.setState({snackbarOpen: false})
@@ -90,6 +114,17 @@ export class Community extends React.Component{
     if (err) { console.log('Oh no!', err) }
     Meteor.call('updateLocation', address, lat, lng)
   })
+  }
+
+  handleFacebookLogin = (e) => {
+    e.preventDefault()
+    Meteor.loginWithFacebook({requestPermissions: ['email', 'public_profile', 'user_friends']},function(error, result) {
+      if (error) {
+          console.log("facebook login didn't work at all")
+          Bert.alert(error.reason, 'danger')
+      }
+    })
+
   }
 
   handleLocationEditOpen = (e) => {
@@ -123,31 +158,35 @@ export class Community extends React.Component{
     }.bind(this))
   }
 
-  callMeetupEventSearch(interests) {
-    Meteor.call('callMeetupEventSearch', interests)
-  }
 
   handleMoreSuggestions = () => {
     this.setState({findingMore: true})
     this.setState({suggestionsCalled: true})
-    this.callEventbriteAPI(this.props.user.interests)
-    this.callMeetupEventSearch(this.props.user.interests)
+    Meteor.call('checkCurrentSuggestions', (error, result) => {
+      console.log('Result is: '+result)
+      if (error) {
+        console.log(error)
+      } else if (result == false) {
+        Meteor.call('callMeetupGroupSearch', this.props.user.interests)
+        var i
+        for (i=0;i<this.props.user.interests.length;i++) {
+          Meteor.call('scrapeExperiment', this.props.user.interests[i])
+          Meteor.call('indiegogoSearch', this.props.user.interests[i])
+        }
+        this.callEventbriteAPI(this.props.user.interests)
+      } else if (result == true) {
+        Meteor.call('newTodayEventSuggestions')
+        this.setState({findingMore: false})
+        Meteor.call('searchEventsNoUpdate', this.props.user.interests)
+      }
+    })
+
+
+
 
   }
 
-  extractUrls = (e) => {
-    e.preventDefault();
-    var meetups = this.props.user.potentialMeetupSuggestions
-    for (var i in meetups) {
-      var html = meetups[i].meetupInfo.description
-      try {console.log(getUrls(html))}
-      catch(err) {console.log('no url')}
-    }
-  }
 
-  checkURL(url) {
-    return(url.match(/\.(jpeg|jpg|gif|png)$/) != null);
-  }
 
   getMeetupImageURL(html) {
     try {
@@ -166,8 +205,12 @@ export class Community extends React.Component{
   }
 
   handleEventStar(event, today, e) {
-    Meteor.call('starEvent', event, today)
-    Meteor.call('markEventSeen', event, today)
+    if (event.starred) {
+      Meteor.call('unStarEvent', event, today)
+    } else {
+      Meteor.call('starEvent', event, today)
+      Meteor.call('markEventSeen', event, today)
+    }
   }
 
   handleEventCross(event, today, e) {
@@ -240,7 +283,13 @@ export class Community extends React.Component{
     //add tags to Collection
     Meteor.call('attachTags', this.state.contribution, this.state.tags)
     this.setState({snackbarOpen: true, domain: '', contribution: null})
-    //Meteor.call('confirmContribution', this.state.contribution)
+    Meteor.call('confirmContribution', this.state.contribution, function(error, result) {
+      if (error) {
+        console.log(error)
+      } else {
+        console.log(result)
+      }
+    })
 
   }
 
@@ -281,9 +330,265 @@ export class Community extends React.Component{
 
   }
 
+  handleLinkOpen(url, eventId, today,  e) {
+    e.preventDefault()
+    Meteor.call('registerEventClick', eventId, today)
+    console.log(url)
+    window.open(url)
+  }
+
+  handleIndiegogoSearch = (e) => {
+    var i
+    console.log('hello lets run a search of indiegogo')
+    var interestLength = this.props.user.interests.length
+    for (i=0;i<interestLength;i++) {
+      Meteor.call('indiegogoSearch', this.props.user.interests[i])
+    }
+
+  }
+
   renderSuggestions(today) {
     var i = 0
     var suggestions = []
+
+    function getGetOrdinal(n) {
+        var s=["th","st","nd","rd"],
+        v=n%100;
+        return n+(s[(v-20)%10]||s[v]||s[0]);
+     }
+
+    for (i = 0; i < this.props.user.suggestions[today].length; i++) {
+      var event = this.props.user.suggestions[today][i]
+      if (event && !event.crossed) {
+
+        if (event.type === 'event')
+        {
+        suggestions.push(
+              <Card onExpandChange={this.handleEventExpandChange.bind(this, event, today)}
+                style={{marginTop: '10px', overflowX: 'hidden',
+                    borderColor: event.starred? amber500 : null
+                        }}
+                initiallyExpanded={false}>
+                <div style={{paddingTop: '10px'}}>
+                  <div style={{paddingLeft: '10px'}}>Go to an interesting event...</div>
+                  <Divider style={{marginTop: '10px'}}/>
+                </div>
+              <CardHeader
+                title={event.title}
+                style={{paddingRight: '0px'}}
+                avatar={<Event/>}
+                titleStyle={{marginRight: '-50px'}}
+                showExpandableButton={false}
+                actAsExpander={true}
+              />
+            <CardMedia onTouchTap={this.handleLinkOpen.bind(this,event.url, event._id, today)}
+              style={{display: 'flex', justifyContent: 'center'}}
+           >
+             <img  style={styles.image} src={event.image? event.image : event.logo? event.logo : '/images/eventdefault.jpg'} alt="" />
+           </CardMedia>
+           <CardText expandable={false} style={{paddingTop: '0px', paddingBottom: '0px'}}>
+             <div style={{display: 'flex'}}>
+               <div style={{flex: 3, paddingRight: '5px'}}>
+                 <AccessTime/>
+                  {moment(event.start).format("HH:mm") + ', ' + getGetOrdinal(moment(event.start).format("D")) + ' ' + moment(event.start).format("MMM")}
+               </div>
+               <div style={{flex: 4, paddingLeft: '5px'}}>
+                 <LocationOn/>
+                 {event.venue && event.venue.name ? event.venue.name : 'Not yet clear'}
+               </div>
+             </div>
+           </CardText>
+           <CardText expandable={true}>
+             <div dangerouslySetInnerHTML={{ __html: event.description ? event.description.replace(/<img[^>]*>/g,"") : 'Description missing'}}/>
+           </CardText>
+           <CardActions showExpandableButton={true} >
+             <IconButton  onTouchTap={this.handleEventStar.bind(this, event, today)}>
+               {event.starred ? <StarRate color={amber500}/> : <StarBorder color={grey500}/>}
+             </IconButton>
+             <IconButton onTouchTap={this.handleEventCross.bind(this, event, today)}>
+               <Clear color='red'/>
+             </IconButton>
+          </CardActions>
+        </Card>
+        )
+      } else if (event.source === 'contribution') {
+        suggestions.push(
+              <Card onExpandChange={this.handleEventExpandChange.bind(this, event, today)}
+                style={{marginTop: '10px', overflowX: 'hidden',
+                    borderColor: event.starred? amber500 : null
+                        }}
+                initiallyExpanded={false}>
+
+              <CardHeader
+                title={event.title}
+                avatar={<Accessibility/>}
+                titleStyle={{marginRight: '-50px'}}
+                actAsExpander={true}
+              />
+            <CardMedia onTouchTap={this.handleLinkOpen.bind(this,event.url, event._id, today)}
+              style={{ display: 'flex', justifyContent: 'center'}}
+           >
+             <img  style={styles.image} src={event.image? event.image : '/images/eventdefault.jpg'} alt="" />
+           </CardMedia>
+
+           <CardText expandable={true}>
+             <div>
+               {event.description}
+             </div>
+           </CardText>
+           <CardActions showExpandableButton={true} >
+             <IconButton  onTouchTap={this.handleEventStar.bind(this, event, today)}>
+               {event.starred ? <StarRate color={amber500}/> : <StarBorder color={grey500}/>}
+             </IconButton>
+             <IconButton onTouchTap={this.handleEventCross.bind(this, event, today)}>
+               <Clear color='red'/>
+             </IconButton>
+          </CardActions>
+        </Card>)
+      }
+
+      else if (event.type === 'science') {
+        suggestions.push(
+              <Card onExpandChange={this.handleEventExpandChange.bind(this, event, today)}
+                style={{marginTop: '10px', overflowX: 'hidden',
+                    borderColor: event.starred? amber500 : null
+                        }}
+                initiallyExpanded={false}>
+              <div style={{paddingTop: '10px'}}>
+                <div style={{paddingLeft: '10px'}}>Help fund some scientific research...</div>
+                <Divider style={{marginTop: '10px'}}/>
+              </div>
+              <CardHeader
+                title={event.title}
+                avatar={<i className="fa fa-flask"></i>}
+                titleStyle={{marginRight: '-50px'}}
+                actAsExpander={true}
+              />
+            <CardMedia onTouchTap={this.handleLinkOpen.bind(this,event.url, event._id, today)}
+              style={{ display: 'flex', justifyContent: 'center'}}
+           >
+             <img  style={styles.image} src={event.image? event.image : '/images/eventdefault.jpg'} alt="" />
+           </CardMedia>
+
+           <CardText expandable={true}>
+             <div>
+               {event.description}
+             </div>
+           </CardText>
+           <CardActions showExpandableButton={true} >
+             <IconButton  onTouchTap={this.handleEventStar.bind(this, event, today)}>
+               {event.starred ? <StarRate color={amber500}/> : <StarBorder color={grey500}/>}
+             </IconButton>
+             <IconButton onTouchTap={this.handleEventCross.bind(this, event, today)}>
+               <Clear color='red'/>
+             </IconButton>
+          </CardActions>
+        </Card>)
+      }
+
+      else if (event.type === 'funding') {
+        suggestions.push(
+              <Card onExpandChange={this.handleEventExpandChange.bind(this, event, today)}
+                style={{marginTop: '10px', overflowX: 'hidden',
+                    borderColor: event.starred? amber500 : null
+                        }}
+                initiallyExpanded={false}>
+              <div style={{paddingTop: '10px'}}>
+                <div style={{paddingLeft: '10px'}}>Donate to a worthy cause or project...</div>
+                <Divider style={{marginTop: '10px'}}/>
+              </div>
+              <CardHeader
+                title={event.title}
+                avatar={<i className="fa fa-flask"></i>}
+                titleStyle={{marginRight: '-50px'}}
+                actAsExpander={true}
+              />
+            <CardMedia onTouchTap={this.handleLinkOpen.bind(this,event.url, event._id, today)}
+              style={{maxHeight: '200px', display: 'flex', justifyContent: 'center'}}
+              mediaStyle={{maxHeight: '200px'}}
+           >
+             <img  style={styles.indiegogoImage} src={event.image? event.image : '/images/eventdefault.jpg'} alt="" />
+           </CardMedia>
+           {event.fundingProgress ?
+           <CardText expandable={false}>
+             <Subheader style={{paddingLeft: '0px'}}>
+               Funding progress
+             </Subheader>
+             <div>
+             <LinearProgress  mode="determinate" value={event.fundingProgress}/>
+             </div>
+             <div style={{textAlign: 'right', color: grey500, paddingTop:'10px'}}>
+               {Math.round(event.fundingProgress)}% of ${event.goal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")} raised so far
+             </div>
+           </CardText> : null}
+           <CardText expandable={true}>
+             <div>
+               {event.description}
+             </div>
+           </CardText>
+           <CardActions showExpandableButton={true} >
+             <IconButton  onTouchTap={this.handleEventStar.bind(this, event, today)}>
+               {event.starred ? <StarRate color={amber500}/> : <StarBorder color={grey500}/>}
+             </IconButton>
+             <IconButton onTouchTap={this.handleEventCross.bind(this, event, today)}>
+               <Clear color='red'/>
+             </IconButton>
+          </CardActions>
+        </Card>)
+      }
+
+      else if (event.type === 'group') {
+        suggestions.push(
+              <Card onExpandChange={this.handleEventExpandChange.bind(this, event, today)}
+                style={{marginTop: '10px', overflowX: 'hidden',
+                    borderColor: event.starred? amber500 : null
+                        }}
+                initiallyExpanded={false}>
+                <div style={{paddingTop: '10px'}}>
+                  <div style={{paddingLeft: '10px'}}>Meet some like-minded people...</div>
+                  <Divider style={{marginTop: '10px'}}/>
+                </div>
+              <CardHeader
+                title={event.title}
+                avatar={<Group/>}
+                titleStyle={{marginRight: '-50px'}}
+                actAsExpander={true}
+              />
+            <CardMedia style={{ display: 'flex', justifyContent: 'center'}}
+              onTouchTap={this.handleLinkOpen.bind(this,event.url, event._id, today)}
+
+           >
+             <img style={styles.image} src={event.image? event.image : '/images/eventdefault.jpg'} alt="" />
+           </CardMedia>
+           <CardText expandable={false} style={{paddingTop: '0px', paddingBottom: '0px'}}>
+             <div style={{display: 'flex'}}>
+               <div style={{flex: 3, paddingRight: '5px'}}>
+                 <b>Number of members:</b> {event.members}
+               </div>
+             </div>
+           </CardText>
+           <CardText expandable={true}>
+             <div>
+               <div dangerouslySetInnerHTML={{ __html: event.description ? event.description.replace(/<img[^>]*>/g,"") : 'Description missing'}}/>
+             </div>
+           </CardText>
+           <CardActions showExpandableButton={true} >
+             <IconButton  onTouchTap={this.handleEventStar.bind(this, event, today)}>
+               {event.starred ? <StarRate color={amber500}/> : <StarBorder color={grey500}/>}
+             </IconButton>
+             <IconButton onTouchTap={this.handleEventCross.bind(this, event, today)}>
+               <Clear color='red'/>
+             </IconButton>
+          </CardActions>
+        </Card>)
+      }
+        if (event.seen !== true) {
+          break;
+        }
+      }
+    }
+
+/*
 
     for (i = 0; i < 5 ; i++) {
       var event = this.props.user.eventSuggestions[today][i]
@@ -421,6 +726,7 @@ export class Community extends React.Component{
         }
 
       }
+      */
 
     return (
       <div>
@@ -430,23 +736,25 @@ export class Community extends React.Component{
   }
 
   getNextSuggestion(today) {
-    var meetupLength = this.props.user.meetupSuggestions[today].length
-    var eventLength = this.props.user.eventSuggestions[today].length
+    var suggestionLength = this.props.user.suggestions[today].length
+
     var i
-    for (i=0; i< Math.max(meetupLength, eventLength); i++) {
-      var event = this.props.user.eventSuggestions[today][i]
-      var meetup = this.props.user.meetupSuggestions[today][i]
+    for (i=0; i< suggestionLength; i++) {
+      var event = this.props.user.suggestions[today][i]
       if (!event.seen) {
         Meteor.call('markEventSeen', event, today)
         break;
-      } else if (!meetup.seen) {
-        Meteor.call('markMeetupSeen', event, today)
-        break;
       }
+
     }
   }
 
   render() {
+    console.log(this.state)
+
+    if (this.props.user && this.props.user.justAddedPledge) {
+      Meteor.call('resetJustAddedPledge')
+    }
 
     var today = new Date()
     var yesterday = new Date(today.getTime() - (24*60*60*1000))
@@ -469,9 +777,49 @@ export class Community extends React.Component{
                                               display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
         <CircularProgress/>
         </div> :
-        <div>
+        Meteor.userId() === null ?
+        <div style={{height: '80vh', margin: '10px', boxSizing: 'border-box', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', flexDirection: 'column', backgroundColor: grey200}}>
+          <div style={{textAlign: 'center', width: '90%', backgroundColor: 'white', padding: '16px', margin: '16px', borderRadius: '5px'}}>
+            Suggestions of things you can do, and communities you can join, taken from all over the internet. <br/><br/>New, every day.
+          </div>
+          <div style={{textAlign: 'center', width: '90%', backgroundColor: 'white', padding: '16px', margin: '16px', borderRadius: '5px'}}>
+            <p>Find events to go to</p>
+            <p>Campaigns to be a part of</p>
+            <p>Fundraisers to contribute to</p>
+            <p>Like-minded people to meet</p>
+          </div>
+          <div style={{margin: '16px'}}>
+            <RaisedButton backgroundColor="#3b5998" labelColor='white' label='Log in with Facebook' onTouchTap={this.handleFacebookLogin}/>
+          </div>
 
-          {this.props.user.interests && this.props.user.interests.length > 0 ?
+        </div> :
+        <div>
+          <div style={{display: 'flex'}}>
+          <Subheader style={{flex: 1, display: 'inline-flex'}}>
+            Suggestions
+          </Subheader>
+        <div style={{width: 'auto'}}>
+          <div style={{display: 'inline-flex'}}>
+            <Chip
+              onTouchTap = {this.handleEditInterests}
+              style={styles.optionCip}
+            >...</Chip>
+        </div>
+        {this.props.user.location ?
+        <div style={{display: 'inline-flex'}}>
+          <Chip
+            style={styles.optionChip}
+            backgroundColor={amber200}
+            onTouchTap={this.handleLocationEditOpen}
+          >
+          {this.props.user.location.address.length > 10 ? this.props.user.location.address.substring(0,10) + '...' :
+          this.props.user.location.address}
+        </Chip>
+      </div> : null}
+      </div>
+      </div>
+          {this.props.user.interests && this.props.user.interests.length > 0 && 1===2?
             <div>
               {this.props.user.interests.slice(0, Math.min(this.props.user.interests.length , 2)).map(
                 (each) => (
@@ -493,19 +841,6 @@ export class Community extends React.Component{
             </div> :
             <div/>
           }
-
-          {this.props.user.location ?
-            <div style={{display: 'inline-block', width: '100%'}}>
-              <Chip
-                style={styles.chip}
-                backgroundColor={amber200}
-                onTouchTap={this.handleLocationEditOpen}
-              >
-                {this.props.user.location.address}
-              </Chip>
-            </div> :
-            <div/>
-            }
 
           {!this.props.user.interests || this.props.user.interests.length === 0 || this.state.interestsSet ?
             <div>
@@ -544,97 +879,24 @@ export class Community extends React.Component{
             null
           }
 
-          <div ref='box' style={{backgroundColor: grey200, marginLeft:'5px', marginRight: '5px'
+          <div style={{display: 'flex', justifyContent: 'center', overflowY: 'scroll', backgroundColor: grey200}}>
+          <div ref='box' style={{backgroundColor: grey200
             , height: 'calc(100vh - 166px)'
-            , overflowY: 'scroll'}}>
-          {/*
-            this.state.suggestionsCalled ?
-            <div >
-            <Subheader>Today's suggestions</Subheader>
-            <div>
-              <Subheader>Events</Subheader>
-              {this.props.user.eventSuggestions && this.props.user.eventSuggestions[today] ?
-                this.props.user.eventSuggestions[today].map((event) => (
-                  (!event.crossed) ?
-                  <Card
-                    style={{margin: '16px', overflowX: 'hidden'}}
-                    initiallyExpanded={false}>
-                  <CardHeader
-                    title={event.eventInfo.name.text}
-                    subtitle="Eventbrite"
-                    avatar={event.eventInfo.logo? event.eventInfo.logo.url : '/images/eventdefault.jpg'}
-                    actAsExpander={true}
-                  />
-                  <CardMedia
-                    expandable={true}
-               >
-                 <img  src={event.eventInfo.logo? event.eventInfo.logo.url : '/images/eventdefault.jpg'} alt="" />
-               </CardMedia>
-               <CardText expandable={true}>
-                 <div dangerouslySetInnerHTML={{ __html: event.eventInfo.description.html ? event.eventInfo.description.html.replace(/<img[^>]*>/g,"") : 'Description missing'}}/>
-               </CardText>
-               <CardActions showExpandableButton={true} actAsExpander={true}>
-                 <IconButton  onTouchTap={this.handleEventStar.bind(this, event, today)}>
-                   <StarRate color={amber500}/>
-                 </IconButton>
-                 <IconButton onTouchTap={this.handleEventCross.bind(this, event, today)}>
-                   <Clear color='red'/>
-                 </IconButton>
-              </CardActions>
+            , maxWidth: '400px',width: '100%' }}>
 
-            </Card> : null
-           ))
-                 :
-           <Card/>}
-             </div>
-
-             <div>
-               <Subheader>Meetups</Subheader>
-               {this.props.user.meetupSuggestions && this.props.user.meetupSuggestions[today] ?
-                 this.props.user.meetupSuggestions[today].map((event) => (
-                   (!event.crossed) ?
-                   <Card
-                     style={{margin: '16px', overflowX: 'hidden'}}
-                     initiallyExpanded={false}>
-                     <CardHeader
-                       title={event.meetupInfo.name}
-                       subtitle="Meetup"
-                       avatar={this.getMeetupImageURL(event.meetupInfo.description) ? this.getMeetupImageURL(event.meetupInfo.description)
-                                 : '/images/eventdefault.jpg'}
-                       actAsExpander={true}
-                     />
-                   <CardMedia expandable={true}
-                >
-                  <img src={this.getMeetupImageURL(event.meetupInfo.description) ? this.getMeetupImageURL(event.meetupInfo.description)
-                            : '/images/eventdefault.jpg'} alt="" />
-                </CardMedia>
-
-                <CardText expandable={true}>
-                  <div dangerouslySetInnerHTML={{ __html: event.meetupInfo.description ? event.meetupInfo.description.replace(/<img[^>]*>/g,"") : 'Description missing'}}/>
-                </CardText>
-                <CardActions showExpandableButton={true} actAsExpander={true}>
-                  <IconButton  onTouchTap={this.handleMeetupStar.bind(this, event, today)}>
-                    <StarRate color={amber500}/>
-                  </IconButton>
-                  <IconButton onTouchTap={this.handleMeetupCross.bind(this, event, today)}>
-                    <Clear color='red'/>
-                  </IconButton>
-               </CardActions>
-
-             </Card> : null
-            ))
-                  :
-            <Card/>}
-              </div>
-
-           </div> : null
-
-*/  }
           {this.props.user.interests && this.props.user.location ?
-          <Subheader style={{backgroundColor: 'white'}}>
-            Yesterday's suggestions
-          </Subheader> : null}
-          {this.props.user.eventSuggestions && this.props.user.eventSuggestions[yesterday] ? this.renderSuggestions(yesterday) :
+
+
+          <div style={{width: '100%', textAlign: 'center', marginTop: '16px', color: 'grey'}}>
+            <hr style={{marginLeft: 'auto', marginRight: 'auto', width: '40%'
+              , float: 'left', marginTop: '10px', marginBottom: '10px', borderTop: '1px solid grey'}}/>
+            Yesterday
+            <hr style={{marginLeft: 'auto', marginRight: 'auto', width: '40%'
+              , float: 'right', marginTop: '10px', marginBottom: '10px', borderTop: '1px solid grey'}} />
+        </div>
+
+            : null}
+          {this.props.user.suggestions && this.props.user.suggestions[yesterday] ? this.renderSuggestions(yesterday) :
           this.props.user.interests && this.props.user.location ?
           <div style={styles.message}>
             Sorry, it doesn't look like you checked in yesterday. We can sort you out today though.
@@ -642,9 +904,11 @@ export class Community extends React.Component{
 
           {this.props.user.interests && this.props.user.location ?
             <div>
-              <Subheader style={{backgroundColor: 'white'}}>
-            Today's suggestions
-          </Subheader>
+              <div style={{width: '100%', textAlign: 'center', color: 'grey', marginTop: '16px'}}>
+                  <hr style={{marginLeft: 'auto', marginRight: 'auto', width: '40%', float: 'left', marginTop: '10px', marginBottom: '10px', borderTop: '1px solid grey'}}/>
+                  Today
+                  <hr style={{marginLeft: 'auto', marginRight: 'auto', width: '40%', float: 'right', marginTop: '10px', marginBottom: '10px', borderTop: '1px solid grey'}} />
+              </div>
           <div style={styles.message}>
             We've got some suggestions for you. <br/>Just click cross if you're not a fan. Star if you are.
           </div>
@@ -655,27 +919,27 @@ export class Community extends React.Component{
               <CircularProgress/>
             </Card> :
             null}
-          {this.props.user.eventSuggestions && this.props.user.eventSuggestions[today] ? this.renderSuggestions(today) : null}
+          {this.props.user.suggestions && this.props.user.suggestions[today] ? this.renderSuggestions(today) : null}
           {this.props.user.interests && this.props.user.interests.length > 0 &&
-            !this.state.interestsSet && this.props.user.location && (!this.props.user.eventSuggestions || !this.props.user.eventSuggestions[today])
-            || 1=== 1
+            !this.state.interestsSet && this.props.user.location && (!this.props.user.suggestions || !this.props.user.suggestions[today])
+            || this.props.user._id === 'msfgNtu67nrevfX6c' || this.props.user._id === 'p6ZQiT9b7iWKcyL9D'
             ?
-            <div style={{width: '100%', boxSizing: 'border-box', paddingLeft: '16px', paddingRight: '16px'}}>
+            <div style={{width: '100%', boxSizing: 'border-box', paddingLeft: '16px', paddingRight: '16px', marginBottom: '16px'}}>
               <RaisedButton fullWidth={true} primary={true}
                 label='Update my suggestions' onTouchTap={this.handleMoreSuggestions}/>
             </div>
             : null
           }
-          {this.props.user.meetupSuggestions && this.props.user.meetupSuggestions[today] && this.props.user.meetupSuggestions[today][4] && !this.props.user.meetupSuggestions[today][4].seen ?
+          {this.props.user.suggestions && this.props.user.suggestions[today] && this.props.user.suggestions[today][7] && !this.props.user.suggestions[today][7].seen ?
           <div style={{display: 'flex', width: '100%', justifyContent: 'center'}}>
             <IconButton
-              style={{backgroundColor: 'white', borderRadius: '20px', marginBottom: '10px'}}
+              style={{backgroundColor: 'white', borderRadius: '40px', marginBottom: '10px', marginTop: '10px'}}
               onTouchTap={this.getNextSuggestion.bind(this, today)}>
               <KeyboardArrowDown/>
             </IconButton>
           </div> : null
           }
-          {this.props.user.meetupSuggestions && this.props.user.meetupSuggestions[today] && this.props.user.meetupSuggestions[today][4] && this.props.user.meetupSuggestions[today][4].seen ?
+          {this.props.user.suggestions && this.props.user.suggestions[today] && this.props.user.suggestions[today][7] && this.props.user.suggestions[today][7].seen ?
             <div style={styles.message}>
               That's all for today, come back tomorrow for more though
             </div> : null
@@ -751,15 +1015,19 @@ export class Community extends React.Component{
               onKeyPress={this.handleKeyPress}
               />
           </div> :null}
+
           </div>
+        </div>
           <Dialog
-            title="Dialog With Actions"
+            title="Edit your interests"
               actions={[
-                <FlatButton label='Confirm'/>
+                <FlatButton label='Confirm' onTouchTap={this.handleEditInterestClose}/>
               ]}
               modal={false}
+              autoScrollBodyContent={true}
               open={this.state.editInterestOpen}
               onRequestClose={this.handleEditInterestClose}
+                              contentStyle={{width: "95%", maxWidth: "none"}}
             >
             <div>
             {this.props.user.interests && this.props.user.interests.length > 0 ?
@@ -806,10 +1074,10 @@ export class Community extends React.Component{
                 modal={false}
                 open={this.state.locationOpen}
                 onRequestClose={this.handleLocationEditClose}
-                autoDetectWindowHeight={false}
+
                 style={{paddingTop: '0px'}}
 
-                contentStyle={{width: "95%", maxWidth: "none", height: 'calc(100vh-128px)'}}
+                contentStyle={{width: "95%", maxWidth: "none"}}
               >
 
 
@@ -817,7 +1085,7 @@ export class Community extends React.Component{
                   <Subheader style={{display: 'inline-block'}}>
                     Where do you live/spend your time?
                   </Subheader>
-                  <div style={{paddingLeft: '16px', paddingRight: '16px'}}>
+                  <div style={{paddingLeft: '16px', paddingRight: '16px', height: '300px'}}>
                   <PlacesAutocomplete inputProps={inputProps} onSelect={this.handleSelect} />
                   </div>
                 </div>
@@ -835,7 +1103,8 @@ export class Community extends React.Component{
 
         </div>
 
-      }
+
+    }
 
     </div>
     )

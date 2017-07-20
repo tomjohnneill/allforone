@@ -224,6 +224,21 @@ export class TestyPage extends Component {
     Meteor.call('sendTextMessage', this.props.user.userMessengerId, 'Hello there')
   }
 
+  handleIndiegogoSearch = (e) => {
+    var i
+
+    var interestLength = this.props.user.interests
+    for (i=0;i< interestLength;i++) {
+      Meteor.call('indiegogoSearch', this.props.user.interests[i])
+    }
+
+  }
+
+  handleEmails = (e) => {
+    e.preventDefault()
+    Meteor.call('sendPledgeFullEmail')
+  }
+
   render () {
     if (this.props.justAddedPledge !== undefined && this.props.user && this.props.user.OneSignalUserId === undefined)
     {clearTimeout(this.carousel)}
@@ -269,6 +284,9 @@ export class TestyPage extends Component {
                   avatar={this.props.thisUser.profile.picture}
                 />
               <Subheader>Notifications</Subheader>
+
+              <FlatButton label='Run indiegogo' onTouchTap={this.handleIndiegogoSearch}/>
+
                 <ListItem
                   onTouchTap={this.handleNotificationsClick}
                   primaryText="Tell me when my pledges start"
@@ -314,6 +332,7 @@ export class TestyPage extends Component {
 
                 <FlatButton label='Send to Messenger' onTouchTap={this.handleFacebookNotification}/>
                 <FlatButton label='Messenger second method' onTouchTap={this.handleSendAPI}/>
+                <FlatButton label='Send emails' onTouchTap={this.handleEmails}/>
 
             </Card>
 
