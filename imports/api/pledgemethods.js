@@ -2,13 +2,117 @@ import { Meteor } from 'meteor/meteor';
 import { Mongo } from 'meteor/mongo';
 import { check } from 'meteor/check';
 import { Pledges } from '/imports/api/pledges.js';
+import { PledgeVisits } from '/imports/api/pledges.js';
 import { ValidatedMethod } from 'meteor/mdg:validated-method';
 import {SimpleSchema} from 'meteor/aldeed:simple-schema';
+
+var geoip = require('geoip-lite');
+var parser = require('ua-parser-js');
+
+Meteor.methods({
+
+  /**
+   * Log the initial visit
+   * @param  {Obect} tracking - An object containing tracking variables
+   * @return {Object}  The initial visit record
+   */
+  logVisit: function (pledgeId, type, allforone) {
+    var h, r, visit, ip, geo, id, user;
+
+    this.unblock()
+
+    // Get the headers from the method request
+    h = headers.get(this);
+
+    // Parse the user agent from the headers
+    r = parser(h['user-agent']);
+    console.log(r)
+    // Autodetect spiders and only log visits for real users
+    if (r.device != 'spider') {
+
+      // Get the IP address from the headers
+      ip = headers.methodClientIP(this);
+
+      // Geo IP look up for the IP Address
+      geo = geoip.lookup(ip);
+
+      // Build the visit record object
+      visit = {
+        referer: allforone ? 'https://www.allforone.io': h.referer,
+        ipAddress: ip,
+        userAgent:  {
+          raw: r.string,
+          browser: r.userAgent,
+          device: r.device,
+          os: r.os
+        },
+        geo: geo,
+        date: new Date()
+      };
+
+      var user
+      if (this.userId) {
+        var thisUser = Meteor.users.findOne({_id: this.userId})
+        user = {
+          userId: this.userId,
+          gender: thisUser.services.facebook.gender,
+          locale: thisUser.services.facebook.locale,
+          fbId: thisUser.services.facebook.id,
+          email: thisUser.services.facebook.email,
+          ageRange: thisUser.services.facebook.age_range,
+          friendCount: thisUser.friends ? thisUser.friends.length : 0
+        }
+      } else {
+        user = null
+      }
+
+      return PledgeVisits.insert({visit, user, pledgeId, type});
+
+
+
+    } else {
+      return 'Spider Detected'
+    }
+  },
+
+  logSignUpClick: function(visitId) {
+    PledgeVisits.update({_id: visitId}, {$set: {
+      signUpClick: new Date()
+    }})
+  }
+
+});
+
+Meteor.methods({
+  flipReturning: function() {
+    dateList = PledgeVisits.find({'visit.date': {$ne: undefined}},
+    {fields: {'_id': 1,'visit.date' : 1, user: 1, signUpClick: 1,  'visit.referer': 1,
+      'visit.geo.ll': 1, 'visit.userAgent.device.type':1, 'pledgeId': 1, 'type': 1}})
+
+      for (var i in dateList) {
+        if (dateList[i].pledgeId === 'returning') {
+          var pledgeId = dateList[i].type
+          var type = dateList[i].pledgeId
+          PledgeVisits.update({_id: dateList[i]._id}, {$set: {
+            pledgeId, type
+          }})
+        }
+      }
+  }
+})
 
 if (Meteor.isServer) {
   Meteor.publish("editor", function (_id) {
     return Pledges.find({_id: _id})
   });
+
+  Meteor.publish("pledgeVisits", function () {
+    return PledgeVisits.find()
+  });
+
+  Meteor.publish("pledgeTrelloUrl", function() {
+    return Pledges.find({}, {fields: {_id: 1, trelloBoardUrl: 1, coverPhoto: 1, title: 1}})
+  })
 
   Meteor.publish("pledgeList", function () {
     return Pledges.find({}
@@ -20,6 +124,13 @@ if (Meteor.isServer) {
   Meteor.publish("myPledges", function() {
     return Pledges.find({pledgedUsers: this.userId}
       , {fields: {_id : 1, title: 1, slug : 1, creatorPicture : 1, target : 1, pledgedUsers : 1, pledgeCount: 1
+      , duration : 1, creatorId: 1, deadline: 1, creator: 1}}
+      )
+  })
+
+  Meteor.publish("thesePledges", function(_id) {
+    return Pledges.find({pledgedUsers: _id}
+      , {fields: {_id : 1, title: 1, slug : 1, creatorPicture : 1, target : 1, pledgedUsers : 1, pledgeCount: 1, coverPhoto: 1
       , duration : 1, creatorId: 1, deadline: 1, creator: 1}}
       )
   })
@@ -234,6 +345,26 @@ let PledgeSchema = new SimpleSchema({
     label: "Target number of people for this pledge.",
     optional: true
   },
+  "impact": {
+    type: String,
+    label: "Total impact if this pledge's target is fulfilled.",
+    optional: true
+  },
+  "trelloListId": {
+    type: String,
+    label: "ID of the todo list in Trello",
+    optional: true
+  },
+  "trelloBoardUrl": {
+    type: String,
+    label: "Short URL of board in trello",
+    optional: true
+  },
+  "trelloAdminSet": {
+    type: Boolean,
+    label: "Has an admin user been set for this pledge",
+    optional: true
+  },
   "deadline": {
     type: Date,
     label: "The deadline for meeting the target number of people.",
@@ -266,10 +397,625 @@ let PledgeSchema = new SimpleSchema({
     type: String,
     label: "The duration of the pledge",
     optional: true
+  },
+  "completedEmailSent" : {
+    type: Boolean,
+    label: "Has an email been sent when completed?",
+    optional: true
   }
 });
 
 Pledges.attachSchema(PledgeSchema)
+
+var api_key = Meteor.settings.public.MailgunAPIKey;
+var domain = 'allforone.io';
+var mailgun = require('mailgun-js')({apiKey: api_key, domain: domain});
+
+
+
+function htmlString(pledge) {
+  var newPledges = Pledges.find({title: {$ne: 'Untitled Pledge'}}, {sort: {updated: -1}}, {limit: 3}).fetch()
+  newPledges = newPledges.slice(0,3)
+  return(
+ `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+      <!--[if IE]><html xmlns="http://www.w3.org/1999/xhtml" class="ie"><![endif]-->
+      <!--[if !IE]><!-->
+      <html xmlns="http://www.w3.org/1999/xhtml" style="line-height: inherit; margin: 0; padding: 0;" xmlns="http://www.w3.org/1999/xhtml"><!--<![endif]--><head>&#13;
+          <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />&#13;
+          <title></title>&#13;
+          <!--[if !mso]><!--><meta http-equiv="X-UA-Compatible" content="IE=edge" /><!--<![endif]-->&#13;
+          <meta name="viewport" content="width=device-width" />&#13;
+          &#13;
+          &#13;
+        <!--[if !mso]><!--><!--<![endif]--><meta name="robots" content="noindex,nofollow" />&#13;
+      <meta property="og:title" content="My First Campaign" />&#13;
+      </head>&#13;
+      <!--[if mso]>
+        <body class="mso">
+      <![endif]-->&#13;
+      <!--[if !mso]><!-->&#13;
+        <body class="no-padding" style="-webkit-text-size-adjust: 100%; line-height: inherit; background-color: #fff; margin: 0; padding: 0;" bgcolor="#fff"><style type="text/css">
+      .wrapper .footer__share-button a:hover { color: #ffffff !important; }
+      .wrapper .footer__share-button a:focus { color: #ffffff !important; }
+      .btn a:hover { opacity: 0.8 !important; }
+      .btn a:focus { opacity: 0.8 !important; }
+      .footer__share-button a:hover { opacity: 0.8 !important; }
+      .footer__share-button a:focus { opacity: 0.8 !important; }
+      .email-footer__links a:hover { opacity: 0.8 !important; }
+      .email-footer__links a:focus { opacity: 0.8 !important; }
+      .logo a:hover { color: #859bb1 !important; }
+      .logo a:focus { color: #859bb1 !important; }
+      &gt;</style>&#13;
+      <!--<![endif]-->&#13;
+          <table class="wrapper" style="border-collapse: collapse; table-layout: fixed; min-width: 600px !important; width: 100%; line-height: inherit; background-color: #fff;" cellpadding="0" cellspacing="0" role="presentation" bgcolor="#fff"><tbody style="line-height: inherit;"><tr style="line-height: inherit;"><td style="line-height: inherit;">&#13;
+            <div role="banner" style="line-height: inherit;">&#13;
+              <div class="preheader" style="max-width: 560px !important; min-width: 280px; width: 560px !important; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 90% !important; margin: 0 auto;">&#13;
+                <div style="border-collapse: collapse; display: table; width: 100%; line-height: inherit;">&#13;
+                <!--[if (mso)|(IE)]><table align="center" class="preheader" cellpadding="0" cellspacing="0" role="presentation"><tr><td style="width: 280px" valign="top"><![endif]-->&#13;
+                  <div class="snippet" style="display: table-cell; float: none !important; font-size: 12px; line-height: 19px; max-width: 280px; min-width: 140px; width: 280px !important; color: #adb3b9; font-family: sans-serif; padding: 10px 0 5px;">&#13;
+                    &#13;
+                  </div>&#13;
+                <!--[if (mso)|(IE)]></td><td style="width: 280px" valign="top"><![endif]-->&#13;
+                  <div class="webversion" style="display: table-cell; float: none !important; font-size: 12px; line-height: 19px; max-width: 280px; min-width: 139px; width: 280px !important; text-align: right; color: #adb3b9; font-family: sans-serif; padding: 10px 0 5px;" align="right">&#13;
+                    <p style="margin-top: 0; margin-bottom: 0; line-height: inherit;">No Images? <webversion style="text-decoration: underline; line-height: inherit;">Click here</webversion></p>&#13;
+                  </div>&#13;
+                <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+                </div>&#13;
+              </div>&#13;
+              &#13;
+            </div>&#13;
+            <div role="section" style="line-height: inherit;">&#13;
+            <div class="layout one-col fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+              <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+              <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 600px" class="w560"><![endif]-->&#13;
+                <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+              &#13;
+                  <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+            <p class="size-20" style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; font-size: 20px !important; line-height: 28px !important; text-align: center;" lang="x-size-20" align="center" xml:lang="x-size-20"><span class="font-roboto" style="line-height: inherit;">ALL FOR ONE</span></p>&#13;
+          </div>&#13;
+              &#13;
+                </div>&#13;
+              <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+              </div>&#13;
+            </div>&#13;
+        &#13;
+            <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+        &#13;
+            <div class="layout one-col fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+              <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+              <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 600px" class="w560"><![endif]-->&#13;
+                <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+              &#13;
+              <div style="font-size: 12px; font-style: normal; font-weight: normal; line-height: inherit;" align="center">&#13;
+                <img class="gnd-corner-image gnd-corner-image-center gnd-corner-image-top gnd-corner-image-bottom" style="display: block; height: auto; width: 100%; max-width: 900px; line-height: inherit; border: 0;" alt="" width="600" src="`+
+                pledge.coverPhoto +
+
+                `" />&#13;
+              </div>&#13;
+            &#13;
+                </div>&#13;
+              <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+              </div>&#13;
+            </div>&#13;
+        &#13;
+            <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+        &#13;
+            <div class="layout one-col fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+              <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+              <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 600px" class="w560"><![endif]-->&#13;
+                <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+              &#13;
+                  <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+            <p class="size-28" style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; font-size: 28px !important; line-height: 36px !important; text-align: center;" lang="x-size-28" align="center" xml:lang="x-size-28"><span class="font-roboto" style="line-height: inherit;">Congratulations!</span></p><p class="size-28" style="margin-top: 20px; margin-bottom: 20px; font-family: roboto,tahoma,sans-serif; font-size: 28px !important; line-height: 36px !important; text-align: center;" lang="x-size-28" align="center" xml:lang="x-size-28"><span class="font-roboto" style="line-height: inherit;">Your pledge has reached its target.</span></p>&#13;
+          </div>&#13;
+              &#13;
+                  <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+            <div style="line-height: 20px; font-size: 1px;"> </div>&#13;
+          </div>&#13;
+              &#13;
+                </div>&#13;
+              <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+              </div>&#13;
+            </div>&#13;
+        &#13;
+            <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+        &#13;
+            <div class="layout one-col fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+              <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+              <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 600px" class="w560"><![endif]-->&#13;
+                <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+              &#13;
+                  <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+            <p style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;">Perhaps you could share your pledge?</span></p>&#13;
+          </div>&#13;
+              &#13;
+                </div>&#13;
+              <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+              </div>&#13;
+            </div>&#13;
+        &#13;
+            <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+        &#13;
+            <div class="layout one-col fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+              <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+              <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 600px" class="w560"><![endif]-->&#13;
+                <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+              &#13;
+                  <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+            <div class="btn btn--flat btn--medium" style="margin-bottom: 20px; text-align: center; line-height: inherit;" align="center">&#13;
+              <a style="border-radius: 4px; display: inline-block; font-size: 12px; font-weight: bold; line-height: 22px; text-align: center; text-decoration: none !important; transition: opacity 0.1s ease-in; color: #ffffff !important; font-family: Avenir, sans-serif; background-color: #006699; padding: 10px 20px;"
+              href="https://www.allforone.io/pages/pledges/` +
+              pledge.slug + '/' + pledge._id +
+              `">Go to pledge</a>&#13;
+            <!--[if mso]><p style="line-height:0;margin:0;">&nbsp;</p><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="http://www.example.com" style="width:114px" arcsize="10%" fillcolor="#006699" stroke="f"><v:textbox style="mso-fit-shape-to-text:t" inset="0px,9px,0px,9px"><center style="font-size:12px;line-height:22px;color:#FFFFFF;font-family:Avenir,sans-serif;font-weight:bold;mso-line-height-rule:exactly;mso-text-raise:4px">Go to pledge</center></v:textbox></v:roundrect><![endif]--></div>&#13;
+          </div>&#13;
+              &#13;
+                  <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+            <div style="line-height: 20px; font-size: 1px;"> </div>&#13;
+          </div>&#13;
+              &#13;
+                </div>&#13;
+              <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+              </div>&#13;
+            </div>&#13;
+        &#13;
+            <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+        &#13;
+            <div class="layout one-col fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+              <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+              <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 600px" class="w560"><![endif]-->&#13;
+                <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+              &#13;
+                  <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+            <p style="margin-top: 0; margin-bottom: 0; line-height: inherit;">Maybe you want to check out some other new pledges?</p>&#13;
+          </div>&#13;
+              &#13;
+                </div>&#13;
+              <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+              </div>&#13;
+            </div>&#13;
+        &#13;
+            <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+        &#13;
+        <div class="layout fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+          <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+          <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 200px" valign="top" class="w160"><![endif]-->&#13;
+            <div class="column narrow" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; float: none !important; max-width: 200px !important; min-width: 320px !important; width: 200px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+            &#13;
+              <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+          <div style="font-size: 12px; font-style: normal; font-weight: normal; line-height: inherit;" align="center">&#13;
+            <img style="display: block; height: auto; width: 100%; max-width: 480px; line-height: inherit; border: 0;" alt="" width="160" src="` +
+            newPledges[0].coverPhoto +
+            `" />&#13;
+          </div>&#13;
+        </div>&#13;
+            &#13;
+            </div>&#13;
+          <!--[if (mso)|(IE)]></td><td style="width: 400px" valign="top" class="w360"><![endif]-->&#13;
+            <div class="column wide" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; float: none !important; max-width: 400px !important; min-width: 320px !important; width: 400px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+            &#13;
+              <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+        <p style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;"><strong style="line-height: inherit;">`
+        + newPledges[0].title +
+        `</strong></span></p><p style="margin-top: 20px; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;">Duration: ` +
+        newPledges[0].duration +
+        `</span></p>&#13;
+      </div>&#13;
+            &#13;
+          <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+          </div>&#13;
+        </div>&#13;
+    </div>&#13;
+
+        <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+    &#13;
+
+        <div class="layout fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+          <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+          <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 200px" valign="top" class="w160"><![endif]-->&#13;
+            <div class="column narrow" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; float: none !important; max-width: 200px !important; min-width: 320px !important; width: 200px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+            &#13;
+              <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+          <div style="font-size: 12px; font-style: normal; font-weight: normal; line-height: inherit;" align="center">&#13;
+            <img style="display: block; height: auto; width: 100%; max-width: 480px; line-height: inherit; border: 0;" alt="" width="160" src="`
+            + newPledges[1].coverPhoto +
+            `" />&#13;
+          </div>&#13;
+        </div>&#13;
+            &#13;
+            </div>&#13;
+          <!--[if (mso)|(IE)]></td><td style="width: 400px" valign="top" class="w360"><![endif]-->&#13;
+            <div class="column wide" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; float: none !important; max-width: 400px !important; min-width: 320px !important; width: 400px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+            &#13;
+              <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+        <p style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;"><strong style="line-height: inherit;">`
+        + newPledges[1].title +
+        `</strong></span></p><p style="margin-top: 20px; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;">Duration: ` +
+        newPledges[1].duration +
+        `</span></p>&#13;
+      </div>&#13;
+            &#13;
+          <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+          </div>&#13;
+        </div>&#13;
+    </div>&#13;
+
+    <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+&#13;
+
+        <div class="layout fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+          <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+          <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 200px" valign="top" class="w160"><![endif]-->&#13;
+            <div class="column narrow" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; float: none !important; max-width: 200px !important; min-width: 320px !important; width: 200px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+            &#13;
+              <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+          <div style="font-size: 12px; font-style: normal; font-weight: normal; line-height: inherit;" align="center">&#13;
+            <img style="display: block; height: auto; width: 100%; max-width: 480px; line-height: inherit; border: 0;" alt="" width="160" src="` +
+            newPledges[2].coverPhoto +
+            `" />&#13;
+          </div>&#13;
+        </div>&#13;
+            &#13;
+            </div>&#13;
+          <!--[if (mso)|(IE)]></td><td style="width: 400px" valign="top" class="w360"><![endif]-->&#13;
+            <div class="column wide" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; float: none !important; max-width: 400px !important; min-width: 320px !important; width: 400px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+            &#13;
+              <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+        <p style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;"><strong style="line-height: inherit;">`
+        + newPledges[2].title +
+        `</strong></span></p><p style="margin-top: 20px; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;">Duration: ` +
+        newPledges[2].duration +
+        `</span></p>&#13;
+        </div>&#13;
+            &#13;
+          <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+          </div>&#13;
+        </div>&#13;
+        </div>&#13;
+
+            <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+        &#13;
+            &#13;
+            <div role="contentinfo" style="line-height: inherit;">&#13;
+              <div class="layout email-footer" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+                <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit;">&#13;
+                <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-email-footer"><td style="width: 400px;" valign="top" class="w360"><![endif]-->&#13;
+                  <div class="column wide" style="text-align: left; font-size: 12px; line-height: 19px; color: #adb3b9; font-family: sans-serif; float: none !important; max-width: 400px !important; min-width: 320px !important; width: 400px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+                    <div style="line-height: inherit; margin: 10px 20px;">&#13;
+                      &#13;
+                      <div style="font-size: 12px; line-height: 19px;">&#13;
+                        <div style="line-height: inherit;">All For One</div>&#13;
+                      </div>&#13;
+                      <div style="font-size: 12px; line-height: 19px; margin-top: 18px;">&#13;
+                        <div style="line-height: inherit;">You are receiving this because you subscribed to a pledge on All For One</div>&#13;
+                      </div>&#13;
+                      <!--[if mso]>&nbsp;<![endif]-->&#13;
+                    </div>&#13;
+                  </div>&#13;
+                <!--[if (mso)|(IE)]></td><td style="width: 200px;" valign="top" class="w160"><![endif]-->&#13;
+                  <div class="column narrow" style="text-align: left; font-size: 12px; line-height: 19px; color: #adb3b9; font-family: sans-serif; float: none !important; max-width: 200px !important; min-width: 320px !important; width: 200px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+                    <div style="line-height: inherit; margin: 10px 20px;">&#13;
+                      &#13;
+                    </div>&#13;
+                  </div>&#13;
+                <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+                </div>&#13;
+              </div>&#13;
+              <div class="layout one-col email-footer" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+                <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit;">&#13;
+                <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-email-footer"><td style="width: 600px;" class="w560"><![endif]-->&#13;
+                  <div class="column" style="text-align: left; font-size: 12px; line-height: 19px; color: #adb3b9; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+                    <div style="line-height: inherit; margin: 10px 20px;">&#13;
+                      <div style="font-size: 12px; line-height: 19px;">&#13;
+                        <span style="line-height: inherit;"><preferences style="text-decoration: underline; line-height: inherit;" lang="en" xml:lang="en">Preferences</preferences>  |  </span><unsubscribe style="text-decoration: underline; line-height: inherit;">Unsubscribe</unsubscribe>&#13;
+                      </div>&#13;
+                    </div>&#13;
+                  </div>&#13;
+                <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+                </div>&#13;
+              </div>&#13;
+            </div>&#13;
+            <div style="line-height: 40px; font-size: 40px;"> </div>&#13;
+          </div></td></tr></tbody></table>&#13;
+        &#13;
+      </body></html>
+      `
+    )
+  }
+
+Meteor.methods({
+  'sendPledgeFullEmail' (recipients, pledge) {
+    for (i=0;i<recipients.length;i++) {
+
+      var data = {
+          from: 'Your Friendly Reminder Service <me@allforone.io>',
+          to: recipients[i],
+          subject: 'Nice one',
+          html: htmlString(pledge),
+          text: `No Images? Click here
+
+                ALL FOR ONE
+
+                Congratulations!
+
+                Your pledge has reached its target.
+
+                Perhaps you could share your pledge?
+
+                Go to pledge ( http://www.example.com )
+
+                Go to pledge
+
+                Maybe you want to check out some other new pledges?
+
+                This pledge here
+
+                This is what the pledge is about
+
+                All For One
+
+                You are receiving this because you subscribed to
+                a pledge on All For One
+
+                Preferences | Unsubscribe`
+        };
+
+    try {
+      mailgun.messages().send(data, function (error, body) {
+        console.log(body);
+      });
+    } catch(err) {
+      continue;
+    }
+
+  }
+  }
+
+
+})
+
+function pledgeListHTML(pledgeList) {
+  var sections = ''
+  console.log(pledgeList)
+   for (var id in pledgeList) {
+     var pledge = Pledges.findOne({_id: pledgeList[id]})
+    sections = sections.concat(`
+      <a href=` + 'https://www.allforone.io/pages/pledges/' + pledge.slug + `/` + pledge._id + `
+      <div class="layout fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+        <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+        <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 200px" valign="top" class="w160"><![endif]-->&#13;
+          <div class="column narrow" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; float: none !important; max-width: 200px !important; min-width: 320px !important; width: 200px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+          &#13;
+            <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+        <div style="font-size: 12px; font-style: normal; font-weight: normal; line-height: inherit;" align="center">&#13;
+          <img style="display: block; height: auto; width: 100%; max-width: 480px; line-height: inherit; border: 0;" alt="" width="160" src="` +
+          pledge.coverPhoto
+          + `" />&#13;
+        </div>&#13;
+      </div>&#13;
+          &#13;
+          </div>&#13;
+        <!--[if (mso)|(IE)]></td><td style="width: 400px" valign="top" class="w360"><![endif]-->&#13;
+          <div class="column wide" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; float: none !important; max-width: 400px !important; min-width: 320px !important; width: 400px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+          &#13;
+            <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+      <p style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;"><strong style="line-height: inherit;">`
+      + pledge.title +
+      `</strong></span></p><p style="margin-top: 20px; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;">Duration: ` +
+      pledge.duration +
+      `</span></p><p style="margin-top: 20px; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; line-height: inherit;"><span class="font-roboto" style="line-height: inherit;"><strong style="line-height: inherit;">Signups:</strong> ` +
+      pledge.pledgedUsers.length + ' out of ' + pledge.target +
+      `</span></p>&#13;
+    </div>&#13;
+          &#13;
+        <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+        </div>&#13;
+      </div>&#13;
+  </div>&#13;
+  </a>
+  <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+
+      `)
+  }
+  console.log(sections)
+  return (
+    `
+            <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+        <!--[if IE]><html xmlns="http://www.w3.org/1999/xhtml" class="ie"><![endif]-->
+        <!--[if !IE]><!-->
+        <html xmlns="http://www.w3.org/1999/xhtml" style="line-height: inherit; margin: 0; padding: 0;" xmlns="http://www.w3.org/1999/xhtml"><!--<![endif]--><head>&#13;
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />&#13;
+            <title></title>&#13;
+            <!--[if !mso]><!--><meta http-equiv="X-UA-Compatible" content="IE=edge" /><!--<![endif]-->&#13;
+            <meta name="viewport" content="width=device-width" />&#13;
+            &#13;
+            &#13;
+          <!--[if !mso]><!--><!--<![endif]--><meta name="robots" content="noindex,nofollow" />&#13;
+        <meta property="og:title" content="My First Campaign" />&#13;
+        </head>&#13;
+        <!--[if mso]>
+          <body class="mso">
+        <![endif]-->&#13;
+        <!--[if !mso]><!-->&#13;
+          <body class="no-padding" style="-webkit-text-size-adjust: 100%; line-height: inherit; background-color: #fff; margin: 0; padding: 0;" bgcolor="#fff"><style type="text/css">
+        .wrapper .footer__share-button a:hover { color: #ffffff !important; }
+        .wrapper .footer__share-button a:focus { color: #ffffff !important; }
+        .btn a:hover { opacity: 0.8 !important; }
+        .btn a:focus { opacity: 0.8 !important; }
+        .footer__share-button a:hover { opacity: 0.8 !important; }
+        .footer__share-button a:focus { opacity: 0.8 !important; }
+        .email-footer__links a:hover { opacity: 0.8 !important; }
+        .email-footer__links a:focus { opacity: 0.8 !important; }
+        .logo a:hover { color: #859bb1 !important; }
+        .logo a:focus { color: #859bb1 !important; }
+        &gt;</style>&#13;
+        <!--<![endif]-->&#13;
+            <table class="wrapper" style="border-collapse: collapse; table-layout: fixed; min-width: 600px !important; width: 100%; line-height: inherit; background-color: #fff;" cellpadding="0" cellspacing="0" role="presentation" bgcolor="#fff"><tbody style="line-height: inherit;"><tr style="line-height: inherit;"><td style="line-height: inherit;">&#13;
+              <div role="banner" style="line-height: inherit;">&#13;
+                <div class="preheader" style="max-width: 560px !important; min-width: 280px; width: 560px !important; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 90% !important; margin: 0 auto;">&#13;
+                  <div style="border-collapse: collapse; display: table; width: 100%; line-height: inherit;">&#13;
+                  <!--[if (mso)|(IE)]><table align="center" class="preheader" cellpadding="0" cellspacing="0" role="presentation"><tr><td style="width: 280px" valign="top"><![endif]-->&#13;
+                    <div class="snippet" style="display: table-cell; float: none !important; font-size: 12px; line-height: 19px; max-width: 280px; min-width: 140px; width: 280px !important; color: #adb3b9; font-family: sans-serif; padding: 10px 0 5px;">&#13;
+                      &#13;
+                    </div>&#13;
+                  <!--[if (mso)|(IE)]></td><td style="width: 280px" valign="top"><![endif]-->&#13;
+                    <div class="webversion" style="display: table-cell; float: none !important; font-size: 12px; line-height: 19px; max-width: 280px; min-width: 139px; width: 280px !important; text-align: right; color: #adb3b9; font-family: sans-serif; padding: 10px 0 5px;" align="right">&#13;
+                      <p style="margin-top: 0; margin-bottom: 0; line-height: inherit;">No Images? <webversion style="text-decoration: underline; line-height: inherit;">Click here</webversion></p>&#13;
+                    </div>&#13;
+                  <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+                  </div>&#13;
+                </div>&#13;
+                &#13;
+              </div>&#13;
+              <div role="section" style="line-height: inherit;">&#13;
+              <div class="layout one-col fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+                <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+                <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 600px" class="w560"><![endif]-->&#13;
+                  <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+                &#13;
+                    <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+              <p class="size-20" style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; font-size: 20px !important; line-height: 28px !important; text-align: center;" lang="x-size-20" align="center" xml:lang="x-size-20"><span class="font-roboto" style="line-height: inherit;">ALL FOR ONE</span></p>&#13;
+            </div>&#13;
+                &#13;
+                  </div>&#13;
+                <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+                </div>&#13;
+              </div>&#13;
+          &#13;
+              <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+          &#13;
+              <div class="layout one-col fixed-width" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+                <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit; background-color: #fff;">&#13;
+                <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-fixed-width" style="background-color: #fff;"><td style="width: 600px" class="w560"><![endif]-->&#13;
+                  <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+                &#13;
+                    <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+              <p class="size-28" style="margin-top: 0; margin-bottom: 20px; font-family: roboto,tahoma,sans-serif; font-size: 28px !important; line-height: 36px !important; text-align: center;" lang="x-size-28" align="center" xml:lang="x-size-28"><span class="font-roboto" style="line-height: inherit;">We've got some new pledges for you</span></p>&#13;
+            </div>&#13;
+                &#13;
+                    <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
+              <div style="line-height: 8px; font-size: 1px;"> </div>&#13;
+            </div>&#13;
+                &#13;
+                  </div>&#13;
+                <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+                </div>&#13;
+              </div>&#13;
+          &#13;
+              <div style="line-height: 20px; font-size: 20px;"> </div>&#13;
+          &#13;
+
+          ` + sections +
+      `
+          &#13;
+              &#13;
+              <div role="contentinfo" style="line-height: inherit;">&#13;
+                <div class="layout email-footer" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+                  <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit;">&#13;
+                  <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-email-footer"><td style="width: 400px;" valign="top" class="w360"><![endif]-->&#13;
+                    <div class="column wide" style="text-align: left; font-size: 12px; line-height: 19px; color: #adb3b9; font-family: sans-serif; float: none !important; max-width: 400px !important; min-width: 320px !important; width: 400px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+                      <div style="line-height: inherit; margin: 10px 20px;">&#13;
+                        &#13;
+                        <div style="font-size: 12px; line-height: 19px;">&#13;
+                          <div style="line-height: inherit;">All For One</div>&#13;
+                        </div>&#13;
+                        <div style="font-size: 12px; line-height: 19px; margin-top: 18px;">&#13;
+                          <div style="line-height: inherit;">You're receiving this because you subscribed to a pledge on All For One</div>&#13;
+                        </div>&#13;
+                        <!--[if mso]>&nbsp;<![endif]-->&#13;
+                      </div>&#13;
+                    </div>&#13;
+                  <!--[if (mso)|(IE)]></td><td style="width: 200px;" valign="top" class="w160"><![endif]-->&#13;
+                    <div class="column narrow" style="text-align: left; font-size: 12px; line-height: 19px; color: #adb3b9; font-family: sans-serif; float: none !important; max-width: 200px !important; min-width: 320px !important; width: 200px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; vertical-align: top;" align="left">&#13;
+                      <div style="line-height: inherit; margin: 10px 20px;">&#13;
+                        &#13;
+                      </div>&#13;
+                    </div>&#13;
+                  <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+                  </div>&#13;
+                </div>&#13;
+                <div class="layout one-col email-footer" style="max-width: 600px !important; min-width: 320px !important; width: 320px !important; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; line-height: inherit; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; -fallback-width: 95% !important; margin: 0 auto;">&#13;
+                  <div class="layout__inner" style="border-collapse: collapse; display: table; width: 100%; line-height: inherit;">&#13;
+                  <!--[if (mso)|(IE)]><table align="center" cellpadding="0" cellspacing="0" role="presentation"><tr class="layout-email-footer"><td style="width: 600px;" class="w560"><![endif]-->&#13;
+                    <div class="column" style="text-align: left; font-size: 12px; line-height: 19px; color: #adb3b9; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
+                      <div style="line-height: inherit; margin: 10px 20px;">&#13;
+                        <div style="font-size: 12px; line-height: 19px;">&#13;
+                          <span style="line-height: inherit;"><preferences style="text-decoration: underline; line-height: inherit;" lang="en" xml:lang="en">Preferences</preferences>  |  </span><unsubscribe style="text-decoration: underline; line-height: inherit;">Unsubscribe</unsubscribe>&#13;
+                        </div>&#13;
+                      </div>&#13;
+                    </div>&#13;
+                  <!--[if (mso)|(IE)]></td></tr></table><![endif]-->&#13;
+                  </div>&#13;
+                </div>&#13;
+              </div>&#13;
+              <div style="line-height: 40px; font-size: 40px;"> </div>&#13;
+            </div></td></tr></tbody></table>&#13;
+          &#13;
+        </body></html>
+    `
+  )
+}
+
+Meteor.methods({
+  'sendMorePledgesEmail' (pledgeList) {
+    this.unblock()
+    console.log(pledgeList)
+    var emailList = []
+    for (var i in Meteor.users.find().fetch()) {
+      var user = Meteor.users.find().fetch()[i]
+        if (user.services && user.services.facebook && user.services.facebook.email) {
+        emailList.push(user.services.facebook.email)
+      }
+    }
+    emailList.push('tom@idleitems.com')
+    console.log(emailList)
+
+
+
+  for (i=0;i<emailList.length;i++) {
+    var data = {
+        from: 'All For One <noreply@allforone.io>',
+        to: emailList[i],
+        subject: 'How else can you help the planet?',
+        html: pledgeListHTML(pledgeList),
+        text: `No Images? Click here
+
+              ALL FOR ONE
+
+              We've got some new pledges for you
+
+              This pledge here
+
+              This is what the pledge is about
+
+              Signups: 1 out of 100
+
+              This pledge here
+
+              This is what the pledge is about
+
+              Signups: 1 out of 100
+
+              All For One
+
+              You're receiving this because you subscribed to
+              a pledge on All For One
+
+              Preferences | Unsubscribe`
+      };
+
+
+    try {
+      mailgun.messages().send(data, function (error, body) {
+
+      });
+    } catch(err) {
+      continue;
+    }
+  }
+}
+
+})
 
 Meteor.methods({
   'assignPledgeToUser'( _id, title) {
@@ -278,7 +1024,6 @@ Meteor.methods({
 
     if (this.userId) {
       var user = Meteor.users.findOne({_id: this.userId})
-      console.log(user)
       if (Pledges.findOne({_id: _id}).pledgedUsers  &&
         !Pledges.findOne({_id: _id}).pledgedUsers.includes(user._id)) {
       Pledges.update({_id: _id}, {
@@ -307,8 +1052,35 @@ Meteor.methods({
         }
       })
     }
+
+
+
+
+    var emailList = ''
+    var pledge = Pledges.findOne({_id: _id})
+    if (pledge.pledgedUsers.length >= pledge.target) {
+      for (var i in pledge.pledgedUsers) {
+        var user = Meteor.users.findOne({_id: pledge.pledgedUsers[i]})
+        if (user.services && user.services.facebook && user.services.facebook.email) {
+          emailList = emailList.concat(user.services.facebook.email + ', ')
+        }
+      }
+      emailList = emailList.concat('tom@idleitems.com')
+
+      console.log(emailList)
+      if (!pledge.completedEmailSent) {
+      Meteor.call('sendPledgeFullEmail', emailList, pledge)
+    }
+      Pledges.update({_id: _id}, {$set: {
+        completedEmailSent: true
+      }})
+    }
+
+
   }
   }
+
+
 });
 
 Meteor.methods({

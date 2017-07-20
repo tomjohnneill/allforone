@@ -2,6 +2,7 @@ import { Meteor } from 'meteor/meteor';
 import { Mongo } from 'meteor/mongo';
 import { check } from 'meteor/check';
 import { Pledges } from '/imports/api/pledges.js';
+import {Suggestions } from '/imports/api/suggestions.js';
 import { Threads } from '/imports/api/threads.js';
 import { Accounts } from 'meteor/accounts-base';
 import { HTTP } from 'meteor/http';
@@ -30,6 +31,12 @@ if (Meteor.isServer) {
     })
   })
 
+  Meteor.publish("publicUser", function(_id) {
+    return Meteor.users.find({_id: _id}, {
+      fields: {_id: 1, 'profile': 1, 'email.address': 1, score:1, 'services.facebook.id' : 1, 'createdAt': 1, 'friends': 1
+    , visits: 1}
+    })
+  })
 
   process.env.MAIL_URL=Meteor.settings.public.MAIL_URL;
 }
@@ -47,6 +54,16 @@ Accounts.onCreateUser(function(options, user) {
 Accounts.onLogin(function(user){
   Meteor.call('addVisit')
 });
+
+Meteor.methods({
+  resetJustAddedPledge: function() {
+    if (this.userId) {
+      Meteor.users.update({_id: this.userId}, {$set: {
+        justAddedPledge: false
+      }})
+    }
+  }
+})
 
 Meteor.methods({
   addVisit: function() {
@@ -143,7 +160,6 @@ Meteor.methods({
   countUsers : function(_id) {
     console.log(_id)
     console.log('count users called')
-    console.log(Pledges.findOne({_id: _id}).pledgedUsers)
     let userCount = Pledges.findOne({_id: _id}).pledgedUsers.length
     return userCount
   }
@@ -184,7 +200,6 @@ Meteor.methods({
     var threadCommentTotal = 0
     var threads = Threads.find({}).fetch()
     for  (var each in threads) {
-      console.log(each)
       if (threads[each].creatorId === user._id && threads[each].comments !== undefined) {
         threadCommentTotal = threadCommentTotal + threads[each].comments.length
       }
@@ -197,6 +212,57 @@ Meteor.methods({
     Meteor.users.update({
       _id: _id}, {$set: {
         score: scoreObject
+      }}
+    )
+
+    var userPledges = Pledges.find({pledgedUsers: _id}).fetch()
+    var pledgeFriendInfluence = 0
+    var userFBID
+    if (user.services && user.services.facebook && user.services.facebook.id) {
+      userFBID = user.services.facebook.id
+    }
+    for (var i in userPledges ) {
+      if (userPledges[i] && userPledges[i].pledgedUsers) {
+        var signupNo = userPledges[i].pledgedUsers.indexOf(_id)
+        var afterUserSignUps = userPledges[i].pledgedUsers.slice(signupNo, userPledges[i].pledgedUsers.length)
+        var afterUserFriends = Meteor.users.find({_id: {$in: afterUserSignUps}, 'friends.id': userFBID}).fetch()
+        pledgeFriendInfluence += afterUserFriends.length
+
+      }
+    }
+
+    var createdPledges = Pledges.find({creatorId: _id}).fetch()
+    var pledgeCreatedInfluence = 0
+    for (var j in createdPledges) {
+      if (createdPledges[j] && createdPledges[j].pledgedUsers) {
+        var userLength = createdPledges[j].pledgedUsers.length - 1
+        pledgeCreatedInfluence += userLength
+      }
+    }
+
+    var userSuggestions = Suggestions.find({contributor: _id}).fetch()
+    var suggestionInfluence = 0
+    for (var k in userSuggestions) {
+      if (userSuggestions[k] && userSuggestions[k].stars) {
+        var suggestionStars = userSuggestions[k].stars.length
+        suggestionInfluence += suggestionStars
+      }
+      if (userSuggestions[k] && userSuggestions[k].clicks) {
+        var suggestionClicks = userSuggestions[k].clicks.length
+        suggestionInfluence += suggestionClicks
+      }
+    }
+
+    console.log(pledgeFriendInfluence)
+
+    var totalInfluence = pledgeFriendInfluence + pledgeCreatedInfluence + suggestionInfluence
+    var influence = {pledgeFriendInfluence: pledgeFriendInfluence, pledgeCreatedInfluence: pledgeCreatedInfluence,
+          suggestionInfluence: suggestionInfluence, totalInfluence: totalInfluence, date: new Date()}
+    console.log(influence)
+
+    Meteor.users.update({
+      _id: _id}, {$push: {
+        influence: influence
       }}
     )
   }
