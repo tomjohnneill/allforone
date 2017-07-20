@@ -15,10 +15,16 @@ import EditThread from '../../ui/pages/editthread.jsx';
 import Thread from '../../ui/pages/thread.jsx';
 import Community from '../../ui/pages/community.jsx';
 import {Interests} from '../../ui/pages/interests.jsx'
+import PublicProfile from '../../ui/pages/publicprofile.jsx';
 
 import {Terms} from '../../ui/pages/terms.jsx';
 import {About } from '../../ui/pages/about.jsx';
 import {PrivacyPolicy} from '../../ui/pages/privacypolicy.jsx';
+
+import EmailAdmin from '../../ui/pages/emailadmin.jsx';
+import Analytics from '../../ui/pages/analytics.jsx'
+import Project from '../../ui/pages/project.jsx';
+import Discover from '../../ui/pages/discover.jsx'
 
 import TestyPage from '../../ui/pages/testypage.jsx';
 
@@ -37,8 +43,13 @@ Meteor.startup( () => {
         <Route path='/testypage' component={TestyPage}/>
         <Route path='/privacypolicy' component={PrivacyPolicy}/>
         <Route path='/community' component={Community}/>
+        <Route path='/emailadmin' component={EmailAdmin}/>
+        <Route path='/:pledgeId/project' component={Project}/>
+        <Route path='/discover' component={Discover}/>
+        <Route path='/analytics' component={Analytics}/>
         <Route path='/interests' component={Interests}/>
         <Route path='/about' component={About}/>
+        <Route path='/profile/:userId' component={PublicProfile}/>
         <Route path='/pages' component ={UserTabs} />
         <Route path='/pages/:tab' component={UserTabs}/>
         <Route path='/pages/pledges/new' component={PledgeList}/>
