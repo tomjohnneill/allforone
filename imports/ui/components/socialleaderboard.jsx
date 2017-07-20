@@ -33,6 +33,12 @@ export class SocialLeaderboard extends Component {
 
   }
 
+  handleFriendClick(_id, e) {
+    e.preventDefault()
+    var friend = Meteor.users.findOne({'services.facebook.id': _id})
+    browserHistory.push('/profile/' + friend._id)
+  }
+
   getColor(user) {
 
     switch(user) {
@@ -45,7 +51,7 @@ export class SocialLeaderboard extends Component {
     }
   }
 
-  renderBoard() {    
+  renderBoard() {
     var topRankings = [,]
     var userRankings = [,]
     var thisUser = Meteor.users.findOne({_id: Meteor.userId()})
@@ -71,6 +77,7 @@ export class SocialLeaderboard extends Component {
               rightAvatar={<IconButton style={{height: '40px', width: '40px', padding: '0px'}}
               iconStyle={{padding: '0px'}}
               tooltipStyles={{zIndex: '15'}}
+              onTouchTap = {this.handleFriendClick.bind(this, this.props.userScores[user].services.facebook.id)}
               tooltip={this.props.userScores[user].profile.name} >
               <Avatar src={this.props.userScores[user].profile.picture}/>
                             </IconButton>}

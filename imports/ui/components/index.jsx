@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom';
 import {grey200, grey500} from 'material-ui/styles/colors'
 import RaisedButton from 'material-ui/RaisedButton'
 import {Link, browserHistory} from 'react-router'
-import TypeWriter from 'react-typewriter';
 
 const styles = {
   box: {

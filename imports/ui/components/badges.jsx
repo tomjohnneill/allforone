@@ -191,14 +191,16 @@ Badges.propTypes = {
   threads: PropTypes.array.isRequired
 };
 
-export default createContainer(() => {
+export default createContainer((props) => {
 
   const scoreHandler = Meteor.subscribe("userData");
   const threadHandler = Meteor.subscribe("threadComments");
 
+  console.log(props)
+
   return {
     loading:  !scoreHandler.ready() || !threadHandler.ready(),
-    user:  Meteor.users.findOne({_id: Meteor.userId()}),
+    user:  Meteor.users.findOne({_id: props.otherUser ? props.otherUser : Meteor.userId()}),
     myCreatedPledges: Pledges.find({creatorId: Meteor.userId()}).fetch(),
     threads: Threads.find().fetch()
   };
