@@ -16,7 +16,7 @@ Meteor.methods({
    * @param  {Obect} tracking - An object containing tracking variables
    * @return {Object}  The initial visit record
    */
-  logVisit: function (pledgeId, type, allforone) {
+  logVisit: function (pledgeId, tracking, type, allforone) {
     var h, r, visit, ip, geo, id, user;
 
     this.unblock()
@@ -62,11 +62,14 @@ Meteor.methods({
           ageRange: thisUser.services.facebook.age_range,
           friendCount: thisUser.friends ? thisUser.friends.length : 0
         }
+        Meteor.users.update({_id: this.userId}, {$set: {
+          geo: geo
+        }})
       } else {
         user = null
       }
-
-      return PledgeVisits.insert({visit, user, pledgeId, type});
+      console.log(tracking)
+      return PledgeVisits.insert({visit, user, pledgeId, type, tracking});
 
 
 
@@ -211,7 +214,7 @@ Meteor.methods({
 Meteor.methods({
   savePledge( pledge ) {
     check( pledge, Object );
-    if (pledge.creatorId === this.userId) {
+    if (pledge.creatorId === this.userId || Roles.userIsInRole(this.userId, 'admin')) {
     let pledgeId = pledge._id;
     Pledges.upsert( pledgeId, { $set: pledge } );
   } else {
@@ -340,6 +343,11 @@ let PledgeSchema = new SimpleSchema({
     label: "The tags for this pledge",
     optional: true
   },
+  "seenBy": {
+    type: [String],
+    label: "Messenger users who have seen this pledge",
+    optional: true
+  },
   "target": {
     type: Number,
     label: "Target number of people for this pledge.",
@@ -348,6 +356,11 @@ let PledgeSchema = new SimpleSchema({
   "impact": {
     type: String,
     label: "Total impact if this pledge's target is fulfilled.",
+    optional: true
+  },
+  "summary": {
+    type: String,
+    label: "Overall summary of the pledge.",
     optional: true
   },
   "trelloListId": {
@@ -725,7 +738,7 @@ function htmlString(pledge) {
 
 Meteor.methods({
   'sendPledgeFullEmail' (recipients, pledge) {
-    for (i=0;i<recipients.length;i++) {
+    for (var i=0;i<recipients.length;i++) {
 
       var data = {
           from: 'Your Friendly Reminder Service <me@allforone.io>',
@@ -972,7 +985,7 @@ Meteor.methods({
 
 
 
-  for (i=0;i<emailList.length;i++) {
+  for (var i=0;i<emailList.length;i++) {
     var data = {
         from: 'All For One <noreply@allforone.io>',
         to: emailList[i],
@@ -1061,15 +1074,30 @@ Meteor.methods({
     if (pledge.pledgedUsers.length >= pledge.target) {
       for (var i in pledge.pledgedUsers) {
         var user = Meteor.users.findOne({_id: pledge.pledgedUsers[i]})
-        if (user.services && user.services.facebook && user.services.facebook.email) {
+        if (user.profile.email) {
+          emailList = emailList.concat(user.profile.email + ', ')
+        }
+        else if (user.services && user.services.facebook && user.services.facebook.email) {
           emailList = emailList.concat(user.services.facebook.email + ', ')
         }
       }
       emailList = emailList.concat('tom@idleitems.com')
 
+
+
       console.log(emailList)
       if (!pledge.completedEmailSent) {
-      Meteor.call('sendPledgeFullEmail', emailList, pledge)
+
+        for (var i in pledge.pledgedUsers) {
+          var user = Meteor.users.findOne({_id: pledge.pledgedUsers[i]})
+          var recipientId = user.userMessengerId
+          if (recipientId) {
+            Meteor.call('sendPledgeFinishedMessage', recipientId, 'Your pledge has reached its target!', pledge.title, pledge.coverPhoto ? pledge.coverPhoto : 'https://www.allforone.io/images/splash.jpg',
+            'https://www.allforone.io/pages/pledges/' + pledge.slug +'/' + pledge._id)
+          }
+        }
+
+        Meteor.call('sendPledgeFullEmail', emailList, pledge)
     }
       Pledges.update({_id: _id}, {$set: {
         completedEmailSent: true
@@ -1113,17 +1141,19 @@ Meteor.methods({
 Meteor.methods({
   'deletePledge' (_id) {
     if (this.userId) {
-      pledge = Pledges.findOne({_id: _id})
-      committedUsers = pledge.pledgedUsers
-      for (var index in committedUsers) {
-        let user = Meteor.users.findOne({_id: committedUsers[index]})
-        Meteor.users.update({_id: committedUsers[index]}, {
-          $pull : {
-            "committedPledges": pledge._id
-          }
-        })
+      var pledge = Pledges.findOne({_id: _id})
+      if (pledge.creatorId === this.userId || Roles.userIsInRole(this.userId, 'admin')) {
+        committedUsers = pledge.pledgedUsers
+        for (var index in committedUsers) {
+          let user = Meteor.users.findOne({_id: committedUsers[index]})
+          Meteor.users.update({_id: committedUsers[index]}, {
+            $pull : {
+              "committedPledges": pledge._id
+            }
+          })
+        }
+        Pledges.remove({_id: _id})
       }
-      Pledges.remove({_id: _id})
     }
   }
 })
