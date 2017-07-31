@@ -200,7 +200,7 @@ export default createContainer((props) => {
 
   return {
     loading:  !scoreHandler.ready() || !threadHandler.ready(),
-    user:  Meteor.users.findOne({_id: props.otherUser ? props.otherUser : Meteor.userId()}),
+    user:  Meteor.users.findOne({_id: props.otherUser ? props.otherUser : Meteor.userId()}, {fields: {visits: 0, suggestions: 0, influence: 0, skills: 0}}),
     myCreatedPledges: Pledges.find({creatorId: Meteor.userId()}).fetch(),
     threads: Threads.find().fetch()
   };

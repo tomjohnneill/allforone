@@ -5,6 +5,7 @@ import {grey200, grey500, grey100} from 'material-ui/styles/colors';
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
 import RaisedButton from 'material-ui/RaisedButton';
 import LinearProgress from 'material-ui/LinearProgress';
+import FlatButton from 'material-ui/FlatButton';
 import Divider from 'material-ui/Divider';
 import {Tabs, Tab} from 'material-ui/Tabs';
 import { Session } from 'meteor/session';
@@ -17,18 +18,21 @@ import ThreadList from '/imports/ui/pages/threadlist.jsx';
 import PledgeList from '../../ui/pages/pledgelist.jsx';
 import Community from '../../ui/pages/community.jsx';
 import SwipeableViews from 'react-swipeable-views';
+import Subheader from 'material-ui/Subheader';
 
 export class UserTabs extends React.Component{
   constructor(props) {
   super(props);
   var lookup = ['pledges','profile','community']
   this.state = {
+    open: this.props.params.tab === 'community' || this.props.params.tab === 'pledges' ? false : true,
     value: 'pledges',
     slideIndex: this.props.params.tab ? lookup.indexOf(this.props.params.tab) : 0,
   };
 }
 
 handleChange(value) {
+  mixpanel.track("Clicked on " + value + ' tab')
   var lookup = ['pledges','profile','community']
   browserHistory.push('/pages/' + lookup[value])
   this.setState({
@@ -38,6 +42,7 @@ handleChange(value) {
   };
 
 handleTabClick(value) {
+  mixpanel.track("Clicked on " + value + ' tab')
   var lookup = ['pledges','profile','community']
   browserHistory.push('/pages/' + value)
   this.setState({
@@ -47,6 +52,7 @@ handleTabClick(value) {
   };
 
 handleTwoTabClick(value) {
+  mixpanel.track("Clicked on " + value + ' tab')
   var lookup = ['pledges','community']
   browserHistory.push('/pages/' + value)
   this.setState({
@@ -55,9 +61,29 @@ handleTwoTabClick(value) {
   });
 }
 
+handleSignIn = (e) => {
+  console.log('What is going on?')
+  e.preventDefault()
+  console.log('What is going on?')
+  Meteor.loginWithFacebook({requestPermissions: ['email', 'public_profile', 'user_friends']},function(error, result) {
+    if (error) {
+        console.log("facebook login didn't work at all")
+        Bert.alert(error.reason, 'danger')
+    }
+  })
+}
+
+componentDidMount() {
+  if (this.props.params.tab !== 'pledges' && this.props.params.tab !== 'community') {
+    browserHistory.push('/pages/community')
+    browserHistory.goBack()
+  }
+}
+
+handleClose = () => this.setState({open: false});
 
   componentDidMount() {
-    if (this.props.loading === false && this.props.users[0] !== undefined) {
+    if (this.props.loading === false && Meteor.userId() !== null) {
       Meteor.call('recalculateScore', Meteor.userId())
     }
   }
@@ -66,7 +92,7 @@ handleTwoTabClick(value) {
 
     return(
       <div>
-      {this.props.userId?
+      {Meteor.userId() !== null ?
         <div>
         <Tabs
           tabItemContainerStyle={{height: '36px'}}
@@ -99,6 +125,7 @@ handleTwoTabClick(value) {
       </div>
 
            :
+           <div>
         <Tabs
           tabItemContainerStyle={{height: '36px'}}
             value={this.props.params.tab}
@@ -116,6 +143,21 @@ handleTwoTabClick(value) {
               </div>
             </Tab>
           </Tabs>
+          {this.props.params.tab !== 'pledges' && this.props.params.tab !== 'community' && this.props.params.tab ?
+            <Dialog open={this.state.open}
+          onRequestClose={this.handleClose}>
+            <div style={{display: 'flex', justifyContent: 'center'
+              , alignItems: 'center', flexDirection: 'column', zIndex: '100'}}>
+              <Subheader style={{paddingLeft: '0px', textAlign: 'center', marginBottom: '40px'}}>
+                You need to be logged in to access this page
+              </Subheader>
+              <div>
+              <RaisedButton onTouchTap={this.handleSignIn} primary={true} label='Login'  />
+              </div>
+            </div>
+          </Dialog>
+            : null}
+          </div>
 
       }
       </div>
@@ -133,8 +175,6 @@ export default createContainer(() => {
 
   return {
     loading: !subscriptionHandler.ready(),
-    users: Meteor.users.find().fetch(),
-    userId: Meteor.userId(),
-    thisUser: Meteor.users.findOne({_id: Meteor.userId()})
+    users: Meteor.users.find({}, {fields: {_id: 1}}).fetch(),
   };
 }, UserTabs);

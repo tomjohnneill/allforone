@@ -189,6 +189,16 @@ export default class Navigation extends React.Component {
     })
   }
 
+  handleSignIn = (e) => {
+    e.preventDefault()
+    Meteor.loginWithFacebook({requestPermissions: ['email', 'public_profile', 'user_friends']},function(error, result) {
+      if (error) {
+          console.log("facebook login didn't work at all")
+          Bert.alert(error.reason, 'danger')
+      }
+    })
+  }
+
   handleTerms = (e) => {
     e.preventDefault()
     browserHistory.push('/terms')
@@ -197,6 +207,11 @@ export default class Navigation extends React.Component {
   handlePrivacyPolicy = (e) => {
     e.preventDefault()
     browserHistory.push('/privacypolicy')
+  }
+
+  handleAnalytics = (e) => {
+    e.preventDefault()
+    browserHistory.push('/analytics')
   }
 
   renderLayout() {
@@ -235,9 +250,13 @@ export default class Navigation extends React.Component {
          onRequestClose={this.handleRequestClose.bind(this)}
        >
          <Menu>
-           <MenuItem primaryText="Sign Out" onTouchTap={this.handleSignOut}/>
+           {
+             Meteor.userId() === null ? <MenuItem primaryText="Sign In" onTouchTap={this.handleSignIn}/> :
+             <MenuItem primaryText="Sign Out" onTouchTap={this.handleSignOut}/>
+           }
            <MenuItem primaryText="Terms &amp; Conditions"  onTouchTap={this.handleTerms}/>
            <MenuItem primaryText="Privacy Policy"  onTouchTap={this.handlePrivacyPolicy}/>
+           <MenuItem primaryText='Analytics' onTouchTap={this.handleAnalytics}/>
 
          </Menu>
        </Popover>

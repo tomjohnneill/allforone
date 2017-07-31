@@ -144,7 +144,7 @@ export default createContainer(() => {
 
   return {
     loading:  !scoreHandler.ready(),
-    userScores: Meteor.users.find({}, {sort: {'score.total': -1}}).fetch(),
-    thisUser: Meteor.users.findOne({_id: Meteor.userId()})
+    userScores: Meteor.users.find({}, {sort: {'score.total': -1}}, {fields: {score: 1, 'services.facebook': 1, profile: 1}}).fetch(),
+    thisUser: Meteor.users.findOne({_id: Meteor.userId()}, {fields: {friends: 1}})
   };
 }, SocialLeaderboard);
