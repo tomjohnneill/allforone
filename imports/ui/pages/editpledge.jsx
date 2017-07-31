@@ -19,7 +19,10 @@ import DatePicker from 'material-ui/DatePicker';
 import Dropzone from 'react-dropzone';
 import SelectField from 'material-ui/SelectField';
 import MenuItem from 'material-ui/MenuItem';
-import FlatButton from 'material-ui/FlatButton'
+import FlatButton from 'material-ui/FlatButton';
+import RichTextEditor from 'react-rte';
+import MessengerPlugin from 'react-messenger-plugin';
+import Subheader from 'material-ui/Subheader';
 
 var removeMd = require('remove-markdown')
 
@@ -28,7 +31,10 @@ const styles = {
     backgroundColor: grey200,
     marginTop: '10px',
     marginBottom: '10px',
-    padding: '10px'
+    padding: '10px',
+    overflow: 'hidden',
+    boxSizing: 'border-box',
+    width: '100%'
   },
   header: {
     backgroundColor: 'white',
@@ -51,15 +57,75 @@ const styles = {
   },
   targetCommitments: {
     textAlign: 'center'
+  },
+  explanation: {
+    fontSize: '8pt',
+    color: grey500
   }
 
+}
+
+const toolbarConfig = {
+  // Optionally specify the groups to display (displayed in the order listed).
+  display: ['INLINE_STYLE_BUTTONS', 'IMAGE_BUTTON','LINK_BUTTONS', 'BLOCK_TYPE_BUTTONS', 'BLOCK_TYPE_DROPDOWN', 'HISTORY_BUTTONS'],
+  INLINE_STYLE_BUTTONS: [
+    {label: 'Bold', style: 'BOLD', className: 'custom-css-class'},
+    {label: 'Italic', style: 'ITALIC'},
+    {label: 'Underline', style: 'UNDERLINE'}
+  ],
+  BLOCK_TYPE_DROPDOWN: [
+    {label: 'Normal', style: 'unstyled'},
+    {label: 'Heading Large', style: 'header-one'},
+    {label: 'Heading Medium', style: 'header-two'},
+    {label: 'Heading Small', style: 'header-three'}
+  ],
+  BLOCK_TYPE_BUTTONS: [
+    {label: 'UL', style: 'unordered-list-item'},
+    {label: 'OL', style: 'ordered-list-item'}
+  ]
+};
+
+class MyStatefulEditor extends React.Component {
+  static propTypes = {
+    onChange: PropTypes.func
+  };
+
+
+
+  state = {
+    value: RichTextEditor.createEmptyValue()
+  }
+
+  onChange = (value) => {
+    this.setState({value});
+    if (this.props.onChange) {
+      // Send the changes up to the parent component as an HTML string.
+      // This is here to demonstrate using `.toString()` but in a real app it
+      // would be better to avoid generating a string on each change.
+      this.props.onChange(
+        value.toString('html')
+      );
+    }
+  };
+
+  render () {
+    return (
+      <RichTextEditor
+        placeholder="Tell a story"
+        toolbarConfig={toolbarConfig}
+        editorClassName="story-editor"
+        value={this.state.value}
+        onChange={this.onChange}
+      />
+    );
+  }
 }
 
 export class EditPledge extends React.Component{
   constructor(props) {
     super(props);
     console.log(this.props)
-    this.state = {open: false}
+    this.state = {open: false, story: RichTextEditor.createEmptyValue()}
   }
 
   componentWillMount() {
@@ -111,11 +177,18 @@ handleImpact = (event) => {
   this.setState({impact: impact})
 }
 
+handleSummary = (event) => {
+  var summary = event.target.value
+  this.setState({summary: summary})
+}
+
 handleDeadline = (event, date) => {
   var deadline = date.toISOString()
   console.log(date)
   this.setState({deadline: date})
 }
+
+
 
 submitPledge = (event) => {
   var title = this.state.title ? this.state.title: this.props.pledge.title
@@ -128,6 +201,7 @@ submitPledge = (event) => {
   var picture = this.props.pledge.creatorPicture
   var duration = this.state.duration ? this.state.duration : this.props.pledge.duration
   var impact = this.state.impact ? this.state.impact: this.props.pledge.impact ? this.props.pledge.impact : ''
+  var summary = this.state.summary ? this.state.summary: this.props.pledge.summary ? this.props.pledge.summary : ''
 
   if (title === 'Untitled Pledge' || title === '') {
     Bert.alert('Your pledge needs a title')
@@ -162,7 +236,8 @@ submitPledge = (event) => {
       pledgedUsers: this.props.pledge.pledgedUsers,
       pledgeCount: this.props.pledge.pledgeCount,
       duration: duration,
-      impact: impact
+      impact: impact,
+      summary: summary,
     }
 
     console.log(pledge)
@@ -233,18 +308,23 @@ deletePledge = (e) => {
   })
 }
 
+handleOnChange = (value) => {
+  console.log(value)
+}
+
 render() {
-  console.log(this.state)
+
 
   if ( !this.props.pledge ) { return <div />; }
     else {
+      console.log(this.props.thisUser[0].userMessengerId)
       console.log(this.props.pledge)
   return(
   <div>
       <div style={styles.box}>
         <Card>
           <CardHeader
-              title="My pledge"
+              title="My pledge application"
               subtitle={this.props.pledge.creator}
               avatar={this.props.pledge.creatorPicture}
             />
@@ -300,50 +380,47 @@ render() {
             }/>
           <Divider/>
 
-          <CardTitle children={
-          <div>
-            <TextField name='impact'
-              fullWidth={true}
-              hintText='A quick summary of the total impact of this pledge'
-              defaultValue={this.state.impact ? this.state.impact: this.props.pledge.impact }
-              onChange={this.handleImpact}/>
-          </div>
-        }/>
+            <CardTitle
+              title = "Pledge blurb"
+              children={
+            <div>
+              <div style={styles.explanation}>
+                Give people an idea of what you’re doing. Skip “Help me” and focus on your plan.
+              </div>
+              <TextField name='summary'
+                fullWidth={true}
+                multiLine={true}
+                hintText='An overall summary'
+                defaultValue={this.state.summary ? this.state.summary: this.props.pledge.summary }
+                onChange={this.handleSummary}/>
 
-          <CardText  children = {
-               <Tabs tabItemContainerStyle={{height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>
-                 <Tab label='What' buttonStyle={{height: '36px'}}>
-                   <TextField multiLine={true}
-                     onChange={this.handleWhat}
-                     name='what'
-                     hintText={"Give a little more detail about what you're doing, the 'rules' so to speak"}
-                     fullWidth={true} style={{backgroundColor: 'white'}}
-                     defaultValue={this.state.what ? this.state.what : this.props.pledge.what !== undefined ? this.props.pledge.what : ''}
-                     rows={6}/>
-                 </Tab>
-                 <Tab label='Why' buttonStyle={{height: '36px'}}>
-                   <TextField multiLine={true}
-                     onChange={this.handleWhy}
-                     hintText={'Explain why this problem is important, and how your pledge will help to contribute to the solution'}
-                     fullWidth={true} style={{backgroundColor: 'white'}}
-                     defaultValue={this.state.why ? this.state.why : this.props.pledge.why !== '' ? this.props.pledge.why : null} rows={6}/>
-                 </Tab>
-                 <Tab label='How' buttonStyle={{height: '36px'}}>
-                   <TextField multiLine={true}
-                     onChange={this.handleHow}
-                     hintText={'For a lot of people this will be the first page they see when they arrive here, they are unlikely to understand how pledges work. Help them out a bit.'}
-                     fullWidth={true} style={{backgroundColor: 'white'}}
-                     defaultValue={this.state.how ? this.state.how : this.props.pledge.how !== '' ? this.props.pledge.how : ''} rows={6}/>
-                 </Tab>
-                 <Tab label='Who' buttonStyle={{height: '36px'}}>
-                   <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                     Click join to see which (if any) of your friends have committed
-                   </div>
-                 </Tab>
-               </Tabs>
-            }
+            </div>
+          }/>
+      </Card>
+
+        <Card style={{marginTop: '20px'}}>
+          <CardTitle style={{marginBottom: '10px'}} title='Pledge description'
+            children={
+              <div>
+          <div style={styles.explanation}>
+            Use your pledge description to share more about what you’re finding people to do and how you plan to pull it off. It’s up to you to make the case for your pledge.
+          </div>
+          <div style={{height: '16px'}}/>
+          <MyStatefulEditor styles={{fontFamily: 'Roboto', padding: '10px', marginTop: '10px'}} onChange={this.handleOnChange}/>
+          </div>
+          }/>
+      </Card>
+      <Card style={{marginTop: '20px'}}>
 
           />
+        <CardTitle title='Add a cover photo'
+          children={
+            <div style={styles.explanation}>
+              This is the first thing that people will see when they come across your pledge, both on All For One and on social media. Choose an image that’s crisp and text-free.
+            </div>
+          }
+        />
+
         <div style={{padding: '16px'}}>
           <Dropzone key={'photos'} onDrop={this.upload.bind(this)}  style={{}}>
                 {({ isDragActive, isDragReject }) => {
@@ -393,14 +470,43 @@ render() {
                   // Default case
                   return (
                     <div style={styles}>
-                      Drag and drop (or click) to upload a cover photo <br/> (please nothing copyrighted)
+                      Drag and drop (or click) to upload
                     </div>
                   )
                 }}
               </Dropzone>
         </div>
+      </Card>
+        <Card style={{marginTop: '20px'}}>
+        <CardTitle title='Submit Application' children={
+          <div style={styles.explanation}>
+            Before your pledge appears on the front page of All For One, we will get in contact with you to talk through your pledge, and work out how best we can work together to make it happen.
+          </div>
+          }/>
+        {this.props.thisUser[0].userMessengerId  ? null :
+        <div style={{paddingBottom: '16px'}}>
+          <Subheader>
+            We will reply to your application on Messenger
+          </Subheader>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '6px', flexDirection: 'column'}}>
+            <div style={{marginLeft: '103px', marginBottom: '20px', marginTop: '5px'}}>
+        <MessengerPlugin
+          appId={Meteor.settings.public.FacebookAppId}
+          pageId={Meteor.settings.public.FacebookPageId}
+          size='large'
+          color='blue'
+          passthroughParams={Meteor.userId()}
+        />
 
-        <RaisedButton label='Save Pledge' onTouchTap={this.submitPledge} secondary={true} fullWidth={true}/>
+      </div>
+      <div style={styles.explanation}>
+        <p style={{textAlign: 'center'}}>You need to click this button so we can send you a message once your pledge is approved.</p>
+      </div>
+      </div>
+    </div>
+    }
+
+        <RaisedButton label='Submit Application' disabled={!this.props.thisUser[0].userMessengerId} onTouchTap={this.submitPledge} secondary={true} fullWidth={true}/>
         <div style={{height: '20px'}}/>
         <FlatButton label='Delete Pledge' onTouchTap={this.handleDelete} fullWidth={true}/>
         </Card>
@@ -443,10 +549,12 @@ EditPledge.propTypes = {
 
 export default createContainer(({params}) => {
   const subscriptionHandler = Meteor.subscribe("editor", params._id);
+  const messengerHandler = Meteor.subscribe("messengerIDExists");
   console.log(params)
   console.log(Pledges.findOne({_id: params._id}))
   return {
-    loading: !subscriptionHandler.ready(),
+    loading: !subscriptionHandler.ready() || !messengerHandler.ready(),
     pledge: Pledges.findOne({_id: params._id}),
+    thisUser: Meteor.users.find({}).fetch(),
   };
 }, EditPledge);
