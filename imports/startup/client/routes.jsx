@@ -25,6 +25,9 @@ import EmailAdmin from '../../ui/pages/emailadmin.jsx';
 import Analytics from '../../ui/pages/analytics.jsx'
 import Project from '../../ui/pages/project.jsx';
 import Discover from '../../ui/pages/discover.jsx'
+import PledgeAnalytics from '../../ui/pages/pledgeanalytics.jsx';
+
+import Admin from '../../ui/pages/admin.jsx';
 
 import TestyPage from '../../ui/pages/testypage.jsx';
 
@@ -42,6 +45,7 @@ Meteor.startup( () => {
         <Route path='/terms' component={Terms}/>
         <Route path='/testypage' component={TestyPage}/>
         <Route path='/privacypolicy' component={PrivacyPolicy}/>
+        <Route path='/admin' component={Admin}/>
         <Route path='/community' component={Community}/>
         <Route path='/emailadmin' component={EmailAdmin}/>
         <Route path='/:pledgeId/project' component={Project}/>
@@ -59,7 +63,8 @@ Meteor.startup( () => {
         <Route path='/pages/:tab/just-added/:pledge/:_id' component={UserTabs}/>
         <Route path='/pages/:tab/:pledge/:_id' component={DynamicPledge}/>
         <Route path='/pages/:tab/:pledge/:_id/edit' component={EditPledge}/>
-
+        <Route path='/pages/:tab/:pledge/:_id/analytics' component={PledgeAnalytics}/>
+        <Route path='/pages/:tab/:pledge/:pledgeId/project' component={Project}/>
         <Route path='/pages/:tab/:pledge' component={UserTabs}/>
         <Route path="/pledge" component={ UserTabs } />
         <Route path="/profile" component={ UserTabs } />

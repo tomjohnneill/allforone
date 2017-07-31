@@ -162,8 +162,8 @@ Meteor.methods({
 
         Suggestions.upsert({localId: details[i].id}, {$set: {
           localId: details[i].id,
-          start: details[i].start.utc,
-          end: details[i].end.utc,
+          start: new Date(details[i].start.utc),
+          end: new Date(details[i].end.utc),
           venue: details[i].venue_id,
           image: logo,
           description: details[i].description.html,

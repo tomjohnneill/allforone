@@ -11,8 +11,12 @@ import { request } from "meteor/froatsnook:request";
 if (Meteor.isServer) {
   // This code only runs on the server
   Meteor.publish("userData", function () {
-    return Meteor.users.find({_id: this.userId})
+    return Meteor.users.find({_id: this.userId}, {fields: {visits: 0, influence: 0, potentialSuggestions: 0}})
   });
+
+  Meteor.publish("messengerIDExists", function() {
+    return Meteor.users.find({_id: this.userId}, {fields: {userMessengerId: 1}})
+  })
 
   Meteor.publish("userCount", function() {
     return Meteor.users.find().count()
@@ -27,14 +31,14 @@ if (Meteor.isServer) {
   Meteor.publish("userScores", function() {
     return Meteor.users.find({}, {
       fields: {_id: 1, 'profile': 1, 'email.address': 1, score:1, 'services.facebook.id' : 1
-    , visits: 1}
+    }
     })
   })
 
   Meteor.publish("publicUser", function(_id) {
     return Meteor.users.find({_id: _id}, {
       fields: {_id: 1, 'profile': 1, 'email.address': 1, score:1, 'services.facebook.id' : 1, 'createdAt': 1, 'friends': 1
-    , visits: 1}
+    }
     })
   })
 
@@ -76,6 +80,36 @@ Meteor.methods({
 })
 
 Meteor.methods({
+  changeUserRole: function(list, role) {
+    if (this.userId === 'msfgNtu67nrevfX6c' || this.userId === 'p6ZQiT9b7iWKcyL9D' || Roles.userIsInRole(this.userId, 'admin')) {
+      Roles.addUsersToRoles(list, role)
+    }
+  }
+})
+
+Meteor.methods({
+  updateEmail: function(email) {
+    this.unblock()
+    if (this.userId) {
+      Meteor.users.update({_id: this.userId}, {$set: {
+        'profile.email': email
+      }})
+    }
+  }
+})
+
+Meteor.methods({
+  updatePhone: function(phoneNo) {
+    this.unblock()
+    if (this.userId) {
+      Meteor.users.update({_id: this.userId}, {$set: {
+        'profile.phone': phoneNo
+      }})
+    }
+  }
+})
+
+Meteor.methods({
   updateMessengerId: function(userMessengerId, userId) {
     console.log('updating messenger ID')
     console.log(userMessengerId)
@@ -83,6 +117,8 @@ Meteor.methods({
     Meteor.users.update({_id: userId},{$set :{
       userMessengerId: userMessengerId
     }})
+
+  //  Meteor.call('sendIntroFacebookMessage', userMessengerId)
   }
 })
 
