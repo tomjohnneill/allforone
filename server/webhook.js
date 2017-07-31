@@ -46,9 +46,11 @@ if (Meteor.isServer) {
       }
     },
     post: function () {
+      if (this.bodyParams.entry[0].messaging[0].message) {
+        console.log(this.bodyParams.entry[0].messaging[0].message.text)
+      }
       console.log(this.bodyParams.entry[0].messaging[0].sender.id)
-      console.log(this.bodyParams.entry[0].messaging[0].optin.ref)
-    if (this.bodyParams.entry[0].messaging[0]) {
+    if (this.bodyParams.entry[0].messaging[0].optin) {
       Meteor.call('updateMessengerId', this.bodyParams.entry[0].messaging[0].sender.id,
       this.bodyParams.entry[0].messaging[0].optin.ref
       , function(error, result) {
@@ -63,6 +65,69 @@ if (Meteor.isServer) {
       Meteor.users.update({_id: this.userId},{$set :{
         userMessengerId: userMessengerId
       }})
+    }
+    if (this.bodyParams.entry[0].messaging[0].message && this.bodyParams.entry[0].messaging[0].message.text) {
+      if (this.bodyParams.entry[0].messaging[0].message.text === 'Send me the menu') {
+        Meteor.call('sendFirstQuestion', this.bodyParams.entry[0].messaging[0].sender.id)
+      } else {
+      Meteor.call('sendTextMessage', this.bodyParams.entry[0].messaging[0].sender.id,
+      "Sorry, we're not great at replying to text messages just yet.")
+      Meteor.call('sendButtonMessage',this.bodyParams.entry[0].messaging[0].sender.id,
+      "Would you be interested in some suggestions?",
+      "Yes please",
+      "SEND_ME_SOME_SUGGESTIONS")
+      }
+    }
+    if (this.bodyParams.entry[0].messaging[0].postback && this.bodyParams.entry[0].messaging[0].postback.payload === 'SEND_ME_SOME_SUGGESTIONS') {
+      Meteor.call("sendSuggestionTemplate", this.bodyParams.entry[0].messaging[0].sender.id,
+      'Swap bottles for a local pint', '38 out of 60 people have agreed to do this',
+      'https://idle-photos.s3-eu-west-2.amazonaws.com/CZngbJkCmzDMoocMu/alcohol-15470_1280.jpg',
+      'https://www.allforone.io/pages/pledges/swap-bottles-for-a-local-pint/CZngbJkCmzDMoocMu',
+      'View Pledge', 'I_WANT_PLEDGES')
+    }
+    if (this.bodyParams.entry[0].messaging[0].postback && this.bodyParams.entry[0].messaging[0].postback.payload === 'SEND_ME_SOME_SUGGESTIONS') {
+      Meteor.call('sendTextMessage', this.bodyParams.entry[0].messaging[0].sender.id,
+      "Sorry, it seems we don't have any more suggestions just yet. Come back later for more.")
+    }
+    if (this.bodyParams.entry[0].messaging[0]) {
+      console.log(this.bodyParams.entry[0].messaging[0])
+    }
+    if (this.bodyParams.entry[0].messaging[0].postback) {
+      var postback = this.bodyParams.entry[0].messaging[0].postback
+      if (postback.payload === "GET_STARTED_PAYLOAD") {
+        Meteor.call('sendFirstQuestion', this.bodyParams.entry[0].messaging[0].sender.id)
+      }
+      if (postback.payload === "FIND_SOMETHING") {
+        Meteor.call('sendChoicesButton', this.bodyParams.entry[0].messaging[0].sender.id)
+      }
+      if (postback.payload === "SUGGEST_SOMETHING") {
+        Meteor.call('sendChoicesButton', this.bodyParams.entry[0].messaging[0].sender.id)
+      }
+      if (postback.payload === "I_WANT_EVENTS") {
+        if (Meteor.call("findAnEvent", this.bodyParams.entry[0].messaging[0].sender.id) === false) {
+          Meteor.call('sendTextMessage', this.bodyParams.entry[0].messaging[0].sender.id,
+        "It seems you've seen all our events. Maybe try something else?")
+        }
+      }
+      if (postback.payload === "I_WANT_PROJECTS") {
+        if (Meteor.call("findAProject", this.bodyParams.entry[0].messaging[0].sender.id) === false) {
+          Meteor.call('sendTextMessage', this.bodyParams.entry[0].messaging[0].sender.id,
+        "It seems you've signed up to all the relevant projects. Maybe try something else?")
+        }
+      }
+      if (postback.payload === "I_WANT_TASKS") {
+        Meteor.call('sendTextMessage', this.bodyParams.entry[0].messaging[0].sender.id,
+        "Sorry, it seems we don't have any more tasks just yet. Come back later for more.")
+      }
+      if (postback.payload === "I_WANT_PLEDGES") {
+        if (Meteor.call("findAPledge", this.bodyParams.entry[0].messaging[0].sender.id) === false) {
+          Meteor.call('sendTextMessage', this.bodyParams.entry[0].messaging[0].sender.id,
+        "It seems you've signed up to all the relevant pledges. Maybe start your own?")
+        }
+      }
+      if (this.bodyParams.entry[0].messaging[0]) {
+        Meteor.call('findAppId', this.bodyParams.entry[0].messaging[0].sender.id)
+      }
     }
     return {
       statusCode: 200
