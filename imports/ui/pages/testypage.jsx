@@ -221,7 +221,7 @@ export class TestyPage extends Component {
   }
 
   handleSendAPI = (e) => {
-    Meteor.call('sendTextMessage', this.props.user.userMessengerId, 'Hello there')
+    Meteor.call('sendTextMessage', this.props.thisUser.userMessengerId, 'Hello there')
   }
 
   handleIndiegogoSearch = (e) => {
@@ -314,7 +314,8 @@ export class TestyPage extends Component {
                       }
                     />
 
-
+                  {this.props.thisUser && !this.props.thisUser.userMessengerId ?
+                    <div>
                 <Subheader>Sent alerts to my Facebook</Subheader>
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                   <div style={{marginLeft: '85px', marginBottom: '20px', marginTop: '5px'}}>
@@ -327,7 +328,8 @@ export class TestyPage extends Component {
                 />
               </div>
 
-              </div>
+            </div>
+            </div> : null}
 
 
                 <FlatButton label='Send to Messenger' onTouchTap={this.handleFacebookNotification}/>

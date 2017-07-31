@@ -30,6 +30,10 @@ import FlatButton from 'material-ui/FlatButton';
 import CircularProgress from 'material-ui/CircularProgress';
 import {Helmet} from "react-helmet";
 import { DocHead } from 'meteor/kadira:dochead';
+import Chip from 'material-ui/Chip';
+import FontIcon from 'material-ui/FontIcon';
+import Drawer from 'material-ui/Drawer';
+import MenuItem from 'material-ui/MenuItem';
 
 
  function querystring() {
@@ -106,6 +110,9 @@ const styles = {
     height: 120,
     padding: 30,
   },
+  chip: {
+  margin: 4,
+},
 }
 
 var _MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -122,13 +129,31 @@ export function dateDiffInDays(a, b) {
 export class DynamicPledge extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {open: false}
+    this.state = {open: false, adminDrawerOpen: false}
     console.log(Meteor.userId())
-    if (Math.random() > 0.8) {Meteor.call('updateUserCount', this.props.params._id)}
+    Meteor.call('updateUserCount', this.props.params._id)
     console.log(querystring())
     console.log(Session.get('allforone'))
+    var qs, tracking;
+
+    // Parse query string
+    qs = querystring();
+
+    if (qs.sid) {
+     tracking = {
+       sid: qs.sid,
+       cmp: qs.cmp  ? qs.cmp : null,
+       s1: qs.s1 ? qs.s1 : null,
+       s2: qs.s2 ? qs.s2 : null,
+       s3: qs.s3 ? qs.s3 : null,
+       s4: qs.s4 ? qs.s4 : null,
+       s5: qs.s5 ? qs.s5 : null
+     };
+   } else {
+     tracking = null
+   }
     if (!Session.get(this.props.params._id)) {
-      Meteor.call('logVisit', this.props.params._id, 'new', Session.get('allforone'), (err, res) => {
+      Meteor.call('logVisit', this.props.params._id, tracking, 'new', Session.get('allforone'), (err, res) => {
         if (err) {
           console.log(error)
         } else {
@@ -137,7 +162,7 @@ export class DynamicPledge extends React.Component {
         }
       });
     } else {
-      Meteor.call('logVisit', this.props.params._id, 'returning', Session.get('allforone'))
+      Meteor.call('logVisit', this.props.params._id, tracking, 'returning', Session.get('allforone'))
     }
   }
 
@@ -145,7 +170,9 @@ export class DynamicPledge extends React.Component {
     Meteor.call('countUsers', this.props.params._id)
   }
 
-
+  handleTabClick = (tab) => {
+    mixpanel.track("Clicked on " + tab + " tab")
+  }
 
   handleFacebook = (e) => {
       console.log(this.props)
@@ -155,6 +182,7 @@ export class DynamicPledge extends React.Component {
       Meteor.call('logSignUpClick', Session.get(this.props.params._id))
       e.preventDefault()
       if (Meteor.userId() === null) {
+        mixpanel.track("Clicked create account")
         Meteor.loginWithFacebook({ requestPermissions: ['email', 'public_profile', 'user_friends'], _id, title },function(error, result) {
           if (error) {
               console.log("facebook login didn't work at all")
@@ -226,14 +254,29 @@ export class DynamicPledge extends React.Component {
     return {__html: this.props.pledge.how.replace(/\n/g, "<br />")}
   }
 
-/*
-  addOg = () => {
-    var title = { property: "og:title", content:  this.props.pledge.title };
+  handleAdminDrawer = (e) => {
+    e.preventDefault()
+    this.setState({adminDrawerOpen: !this.state.adminDrawerOpen})
+  }
+
+  handleAnalyticsClick = (e) => {
+    this.setState({adminDrawerOpen: !this.state.adminDrawerOpen})
+    browserHistory.push('/pages/pledges/' + this.props.pledge.slug + '/' + this.props.pledge._id + '/analytics')
+  }
+
+  handleProjectClick = (e) => {
+    this.setState({adminDrawerOpen: !this.state.adminDrawerOpen})
+    browserHistory.push('/pages/pledges/' + this.props.pledge.slug + '/' + this.props.pledge._id + '/project')
+  }
+
+
+  addOg = (nextProps) => {
+    var title = { property: "og:title", content:  nextProps.pledge.title };
     var type = { property: "og:type", content: "article" };
-    var url = { property: "og:url", content: 'https://www.allforone.io/pages/pledges/' + this.props.pledge.slug + '/' + this.props.pledge._id };
-    var image = { property: "og:image", content: this.props.pledge.coverPhoto === undefined ? '/images/splash.jpg' : this.props.pledge.coverPhoto };
+    var url = { property: "og:url", content: 'https://www.allforone.io/pages/pledges/' + nextProps.pledge.slug + '/' + nextProps.pledge._id };
+    var image = { property: "og:image", content: nextProps.pledge.coverPhoto === undefined ? 'https://www.allforone.io/images/splash.jpg' : nextProps.pledge.coverPhoto };
     var siteName = { property: "og:site_name", content: "All For One" };
-    var description = { property: "ladadafsoid oinasodf" };
+    var description = { property: "og:description", content: "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for " + nextProps.pledge.duration.toLowerCase() + " - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?" };
 
     DocHead.addMeta(title);
     DocHead.addMeta(type);
@@ -243,12 +286,34 @@ export class DynamicPledge extends React.Component {
     DocHead.addMeta(description);
   }
 
-  componentDidMount(props) {
-    this.addOg()
+  addTwitterMeta = (nextProps) => {
+    var card = { property: "twitter:card", content: "summary_large_image" };
+    var site = {property: "twitter:site", content: "@allforonedotio"};
+    var title = {property:"twitter:title", content: nextProps.pledge.title };
+    var description = {property: "twitter:description", content:  "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for " + nextProps.pledge.duration.toLowerCase() + " - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
+    var image = {property: "twitter:image", content: nextProps.pledge.coverPhoto === undefined ? 'https://www.allforone.io/images/splash.jpg' : nextProps.pledge.coverPhoto}
+
+    DocHead.addMeta(card);
+    DocHead.addMeta(site);
+    DocHead.addMeta(title);
+    DocHead.addMeta(description);
+    DocHead.addMeta(image);
   }
-  */
+
+  handleFriendClick(_id, e) {
+    e.preventDefault()
+    mixpanel.track('Clicked on friend from who tab')
+    var friend = Meteor.users.findOne({'services.facebook.id': _id})
+    browserHistory.push('/profile/' + friend._id)
+  }
 
   componentWillReceiveProps(nextProps) {
+    if (!nextProps.loading) {
+      DocHead.removeDocHeadAddedTags()
+      DocHead.setTitle(nextProps.pledge.title);
+      this.addOg(nextProps)
+      this.addTwitterMeta(nextProps)
+    }
     if (!nextProps.loading && nextProps.user !== undefined && nextProps.user.justAddedPledge) {
 
       console.log('Executing on will receive props')
@@ -321,6 +386,8 @@ export class DynamicPledge extends React.Component {
           <DocumentTitle title={this.props.pledge.title}>
         <div style={styles.box}>
           <Card>
+            {this.props.pledge.creatorId === Meteor.userId() || Roles.userIsInRole(Meteor.userId(), 'admin') ?
+              <div>
             <CardHeader
               style={{overflow: 'hidden'}}
                 title={this.props.pledge.creator}
@@ -329,15 +396,25 @@ export class DynamicPledge extends React.Component {
                 textStyle={{maxWidth: '60%', paddingRight: '0px'}}
                 avatar={this.props.pledge.creatorPicture}
                 children={
-                  this.props.pledge.creatorId === Meteor.userId() ?
                     <div style={{float: 'right'}}>
                       <IconButton onTouchTap={this.handleEditClick} tooltip="Edit your pledge">
                         <Edit />
                       </IconButton>
 
-                    </div> : null
+                    </div>
                 }
               />
+            <RaisedButton style={{marginBottom: '16px'}} fullWidth={true}
+              primary={true}
+              label='Admin Tools' onTouchTap={this.handleAdminDrawer} />
+            </div>:
+              <div style={{padding: '10px'}}>
+                <Chip
+
+                >
+                  <Avatar src={this.props.pledge.creatorPicture} />
+                  by {this.props.pledge.creator}
+                </Chip></div>}
             <CardMedia
               overlay={<CardTitle title={this.props.pledge.title} subtitle={"Time: " + this.props.pledge.duration} />}
             >
@@ -345,7 +422,14 @@ export class DynamicPledge extends React.Component {
             </CardMedia>
             <CardTitle children={
                 <div>
+                  {
+                    this.props.pledge.summary ?
+                    <p style={{marginBottom: '16px'}}>
+                    {this.props.pledge.summary}
+                  </p>
+                  : null}
 
+                    <br/>
                   <LinearProgress  color={amber500} mode="determinate" value={this.props.pledge.pledgeCount/this.props.pledge.target*100} />
 
 
@@ -366,56 +450,6 @@ export class DynamicPledge extends React.Component {
                   </div>
                 </div>
               }/>
-            <Divider/>
-            <div style={{color: grey500, padding: '16px'}}>
-              All or nothing - either all {this.props.pledge.target} of us, or none of us do this.
-            </div>
-            {this.props.pledge.impact ?
-                <div style={{paddingLeft: '16px'}}>
-                  <b>Total Impact: </b> {this.props.pledge.impact}
-                </div> :
-                <div/>
-            }
-            <CardText  children = {
-                 <Tabs tabItemContainerStyle={{height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>
-                   <Tab label='What' buttonStyle={{height: '36px'}}>
-                       <div dangerouslySetInnerHTML={this.whatMarkup()}/>
-                   </Tab>
-                   <Tab label='Why' buttonStyle={{height: '36px'}}>
-                     <div dangerouslySetInnerHTML={this.whyMarkup()}/>
-                   </Tab>
-                   <Tab label='How' buttonStyle={{height: '36px'}}>
-                     <div dangerouslySetInnerHTML={this.howMarkup()}/>
-                   </Tab>
-                   <Tab label='Who' buttonStyle={{height: '36px'}}>
-                     <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'scroll'}}>
-                       {this.props.user !== undefined &&
-                         this.props.user.friends !== undefined
-                         && this.props.user.friends.length > 0 ?
-                       <div>
-                         {
-                         this.props.user.friends.map((friend) => (
-                           this.props.pledge.pledgedUsers.includes(Meteor.users.findOne({'services.facebook.id':friend.id}) ? Meteor.users.findOne({'services.facebook.id':friend.id})._id : 'abasc') ?
-                           <Avatar key={friend.id} src={friend.picture.data.url} style={{marginLeft: '-10px'}}/>
-                           : null
-                         ))
-                       }
-                       </div>
-                         : this.props.user === undefined  ?
-                      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                        Click join to see which (if any) of your friends have committed
-                      </div>
-                        :
-                       <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                       Sorry, none of your friends have signed up just yet
-                     </div>}
-                     </div>
-                   </Tab>
-                 </Tabs>
-              }>
-
-            </CardText>
-            <CardActions>
               {this.props.pledge.pledgedUsers.includes(Meteor.userId()) ?
                 <div>
                 <Subheader >Share your pledge</Subheader>
@@ -444,30 +478,103 @@ export class DynamicPledge extends React.Component {
               </div>
 
               :
-              <div>
-              <RaisedButton secondary={true} fullWidth={true} label="OK, I'll join in (using Facebook)" onTouchTap={this.handleFacebook} />
-              <div style={{textAlign: 'center', margin: '10px'}}>or</div>
-              <RaisedButton fullWidth={true} label="Nah, the planet is screwed" onTouchTap={this.handleDecline.bind(this)}/>
-              </div>}
+              <div style={{display: 'flex', justifyContent: 'center'}}>
+                <div style={{width: '60%'}}>
+                  {Meteor.userId() === null ?
+                    <div>
+                  <RaisedButton
+                    icon={<FontIcon color='white' style={{marginRight: '16px'}} className="fa fa-facebook-official fa-2x" />}
+                     primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleFacebook} />
+                   <div style={{fontSize: '8pt', textAlign: 'center', color:grey500, marginTop: '8px'}}>
+
+                      This does not allow us to post to Facebook without your permission
+                    </div>
+                    </div>:
+                  <RaisedButton primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleFacebook} /> }
+                </div>
+            </div>}
+
+            <div style={{color: grey500, padding: '16px'}}>
+              All or nothing - either all {this.props.pledge.target} of us, or none of us do this.
+            </div>
+            <Divider/>
+            <br/>
+            {this.props.pledge.impact ?
+                <div style={{paddingLeft: '16px'}}>
+                  <b>Total Impact: </b> {this.props.pledge.impact}
+                </div> :
+                <div/>
+            }
+
+            <CardText  children = {
+                 <Tabs onChange={this.handleTabClick} tabItemContainerStyle={{height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>
+                   <Tab value='what' label='What' buttonStyle={{height: '36px'}}>
+                       <div dangerouslySetInnerHTML={this.whatMarkup()}/>
+                   </Tab>
+                   <Tab value='why' label='Why' buttonStyle={{height: '36px'}}>
+                     <div dangerouslySetInnerHTML={this.whyMarkup()}/>
+                   </Tab>
+                   <Tab value = 'how' label='How' buttonStyle={{height: '36px'}}>
+                     <div dangerouslySetInnerHTML={this.howMarkup()}/>
+                   </Tab>
+                   <Tab value='who' label='Who' buttonStyle={{height: '36px'}}>
+                     <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'scroll'}}>
+                       {this.props.user !== undefined &&
+                         this.props.user.friends !== undefined
+                         && this.props.user.friends.length > 0 ?
+                       <div>
+                         {
+                         this.props.user.friends.map((friend) => (
+                           this.props.pledge.pledgedUsers.includes(Meteor.users.findOne({'services.facebook.id':friend.id}) ? Meteor.users.findOne({'services.facebook.id':friend.id})._id : 'abasc') ?
+                           <IconButton style={{marginLeft: '-10px'}} tooltip={friend.first_name + ' ' + friend.last_name}>
+                              <Avatar key={friend.id} src={friend.picture.data.url} onTouchTap={this.handleFriendClick.bind(this, friend.id)}/>
+                           </IconButton>
+                           : null
+                         ))
+                       }
+                       </div>
+                         : this.props.user === undefined  ?
+                      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                        Click join to see which (if any) of your friends have committed
+                      </div>
+                        :
+                       <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                       Sorry, none of your friends have signed up just yet
+                     </div>}
+                     </div>
+                   </Tab>
+                 </Tabs>
+              }>
+
+            </CardText>
+            <CardActions>
+
             </CardActions>
           </Card>
 
-          <Dialog
-              title="The planet is screwed"
-              modal={false}
-              open={this.state.open}
-              onRequestClose={this.handleClose.bind(this)}
-            >
-              I mean, I don't really disagree. Still, I'm a little disappointed.
-            </Dialog>
         </div>
       </DocumentTitle >
       }
+      {/*
       <div>
       <FacebookProvider appId={Meteor.settings.public.FacebookAppId}>
         <Comments href={'https://www.allforone.io' +browserHistory.getCurrentLocation().pathname} />
       </FacebookProvider>
       </div>
+      */}
+      <Drawer
+        onRequestChange={(open) => this.setState({adminDrawerOpen: open})}
+        docked={false}
+        open={this.state.adminDrawerOpen}>
+        <Subheader>Admin Tools</Subheader>
+        <Divider/>
+          <MenuItem onTouchTap={this.handleAnalyticsClick} >Analytics</MenuItem>
+          <MenuItem onTouchTap={this.handleAdminDrawer} disabled={true}>Mailing List Management</MenuItem>
+          <MenuItem onTouchTap={this.handleAdminDrawer} disabled={true}>Send Notifications</MenuItem>
+          <MenuItem onTouchTap={this.handleAdminDrawer} disabled={true}>Payments</MenuItem>
+          <MenuItem onTouchTap={this.handleProjectClick} >Project Management</MenuItem>
+        </Drawer>
+
       </div>
     )
   }
@@ -486,6 +593,6 @@ export default createContainer(({params}) => {
   return {
     loading: !subscriptionHandler.ready(),
     pledge: Pledges.findOne({_id: params._id}),
-    user: Meteor.users.findOne({_id: Meteor.userId()})
+    user: Meteor.users.findOne({_id: Meteor.userId()}, {fields: {_id: 1, 'friends': 1, 'justAddedPledge': 1}})
   }
 }, DynamicPledge)

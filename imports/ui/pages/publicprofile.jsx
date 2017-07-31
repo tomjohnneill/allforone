@@ -324,7 +324,7 @@ export class PublicProfile extends Component {
                     : null ) )}
                     />
                   <div style={{height: '16px'}}/>
-                
+
                   </List>
                   </Card>
 
@@ -401,8 +401,8 @@ export default createContainer(({params}) => {
 
   return {
     loading: !subscriptionHandler.ready() || !pledgeHandler.ready() || !scoreHandler.ready(),
-    users: Meteor.users.find({}).fetch(),
-    thisUser: Meteor.users.findOne({_id: params.userId}),
+    users: Meteor.users.find({}, {fields: {visits: 0, suggestions: 0, influence: 0, skills: 0}}).fetch(),
+    thisUser: Meteor.users.findOne({_id: params.userId}, {fields: {visits: 0, suggestions: 0, influence: 0, skills: 0}}),
     pledges: Pledges.find().fetch(),
     suggestions: Suggestions.find().fetch(),
   };

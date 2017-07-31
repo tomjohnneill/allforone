@@ -76,16 +76,33 @@ const styles = {
 
 }
 
+var Trello = window.Trello
+
 export class Project extends React.Component{
   constructor(props) {
     super(props);
     console.log(this.props)
     this.state = {finished: false,
     stepIndex: 0, admin: false}
-    Trello.setKey(Meteor.settings.public.TrelloAPIKey)
+    var Trello = window.Trello
+    jQuery.getScript("https://api.trello.com/1/client.js?key=" + Meteor.settings.public.TrelloAPIKey, function( data, textStatus, jqxhr ) {
+      console.log(data)
+      console.log(textStatus)
+      console.log(jqxhr.status)
+      Trello = window.Trello
+      console.log(window.Trello)
+    })
+
+    if (Trello) {
+      Trello.setKey(Meteor.settings.public.TrelloAPIKey)
+    }
   }
 
   componentWillReceiveProps(nextProps) {
+    var Trello = window.Trello
+    if (Trello) {
+      Trello.setKey(Meteor.settings.public.TrelloAPIKey)
+    }
     if (!nextProps.loading && nextProps.pledges) {
       if (nextProps.pledges[0].trelloAdminSet) {
         this.setState({admin: true})
@@ -94,6 +111,8 @@ export class Project extends React.Component{
   }
 
   trelloAuthorize() {
+    var Trello = window.Trello
+    Trello.setKey(Meteor.settings.public.TrelloAPIKey)
     var authenticationSuccess = function() { console.log('Successful authentication'); };
     var authenticationFailure = function() { console.log('Failed authentication'); };
 
@@ -110,6 +129,7 @@ export class Project extends React.Component{
 }
 
   createCard() {
+    var Trello = window.Trello
     var myList = '5969fc0793bede6b70362c20';
     var creationSuccess = function(data) {
       console.log('Card created successfully. Data returned:' + JSON.stringify(data));
@@ -125,6 +145,7 @@ export class Project extends React.Component{
   }
 
   createBoard = (pledgeId) => {
+    var Trello = window.Trello
     this.trelloAuthorize()
     var creationSuccess = (data) => {
       console.log('Board created successfully. Data returned:' + JSON.stringify(data));
@@ -139,6 +160,7 @@ export class Project extends React.Component{
   }
 
   findLists = () => {
+    var Trello = window.Trello
     this.trelloAuthorize()
     var creationSuccess = (data)  => {
       console.log('Data returned:' + JSON.stringify(data));
@@ -173,6 +195,7 @@ export class Project extends React.Component{
   }
 
   findToDoCards = (trelloListId) => {
+    var Trello = window.Trello
     console.log(this.props)
 
     console.log(trelloListId)
@@ -229,6 +252,7 @@ export class Project extends React.Component{
   }
 
   makeUserAdmin = (profile) => {
+    var Trello = window.Trello
     this.trelloAuthorize()
     var creationSuccess = (data) => {
       console.log('User made admin - nice:' + JSON.stringify(data));
@@ -303,20 +327,21 @@ handlePrev = () => {
     }
     return(
       <div>
-        <Link to='/pages/community'>
-          <div style={{display: 'flex' ,backgroundColor: grey500, color: 'white'}}>
-                      <IconButton
-                iconStyle={styles.smallIcon}
-                style={styles.small}
-              >
-                <ArrowBack />
-              </IconButton>
+        <script src={"https://api.trello.com/1/client.js?key=" + Meteor.settings.public.TrelloAPIKey}></script>
+        <Link to={'/pages/pledges/' + this.props.params.pledge +'/' + this.props.params.pledgeId}>
+        <div style={{display: 'flex' ,backgroundColor: grey500, color: 'white'}}>
+                  <IconButton
+            iconStyle={styles.smallIcon}
+            style={styles.small}
+          >
+            <ArrowBack />
+          </IconButton>
 
-            <div style={{width: '100%', paddingLeft: '16px', backgroundColor: grey500, color: 'white', alignItems: 'center', display: 'flex'}}>
+        <div style={{width: '100%', paddingLeft: '16px', backgroundColor: grey500, color: 'white', alignItems: 'center', display: 'flex'}}>
 
-              BACK TO COMMUNITY
-            </div>
-          </div>
+          BACK TO PLEDGE
+        </div>
+        </div>
         </Link>
           <div style={styles.box}>
             <Card style={{padding: '16px'}}>

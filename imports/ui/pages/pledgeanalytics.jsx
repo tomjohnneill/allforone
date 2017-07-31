@@ -15,7 +15,6 @@ import {PledgeVisits, Pledges} from '/imports/api/pledges.js';
 import {List, ListItem} from 'material-ui/List';
 import Subheader from 'material-ui/Subheader';
 import Avatar from 'material-ui/Avatar';
-import ArrowBack from 'material-ui/svg-icons/navigation/arrow-back';
 import DocumentTitle from 'react-document-title';
 import CircularProgress from 'material-ui/CircularProgress';
 import FlatButton from 'material-ui/FlatButton';
@@ -30,45 +29,101 @@ import {
   TableRow,
   TableRowColumn,
 } from 'material-ui/Table';
+import ArrowBack from 'material-ui/svg-icons/navigation/arrow-back';
+import IconButton from 'material-ui/IconButton';
 
 var _ = lodash
-var google = window.google
 
-export class Analytics extends React.Component{
+const styles = {
+  box: {
+    backgroundColor: grey200,
+    marginTop: '10px',
+    marginBottom: '10px',
+    padding: '10px'
+  },
+  header: {
+    backgroundColor: 'white',
+    fontSize: '20pt',
+    fontWeight: 'bold',
+    padding: '10px',
+  },
+  cardTitle: {
+    display: 'flex',
+    marginTop: '10px'
+  },
+  bigTitle: {
+    width: '50%',
+    fontStyle: 'italic',
+    color: grey500
+  },
+  currentCommitments: {
+    textAlign: 'center',
+
+  },
+  targetCommitments: {
+    textAlign: 'center'
+  },
+  smallIcon: {
+    width: 24,
+    height: 24,
+    color: 'white',
+  },
+  mediumIcon: {
+    width: 48,
+    height: 48,
+  },
+  largeIcon: {
+    width: 60,
+    height: 60,
+  },
+  small: {
+    width: 36,
+    height: 36,
+    padding: '4px 4px 4px 20px'
+  },
+  medium: {
+    width: 96,
+    height: 96,
+    padding: 24,
+  },
+  large: {
+    width: 120,
+    height: 120,
+    padding: 30,
+  },
+  chip: {
+  margin: 4,
+},
+}
+
+export class PledgeAnalytics extends React.Component{
   constructor(props) {
     super(props);
-    jQuery.getScript('https://maps.googleapis.com/maps/api/js?key=AIzaSyDA6wBi0JJo4KFGoCEWuICjabrLs2MLDZo&libraries=places')
-    jQuery.getScript('https://www.gstatic.com/charts/loader.js', function(a,b,c) {
-      console.log(window.google)
-    })
     this.state={pledge: 'all', byPledge:[]}
   }
 
 
   componentDidMount(){
-    var google = window.google
     if (google.charts) {
       google.charts.load('current', {'packages':['corechart', 'geochart'], 'mapsApiKey': Meteor.settings.public.GoogleMapsAPIKey});
     }
     if (google.visualization && !this.props.loading) {
-      this.drawCharts();
+      this.drawCharts(this.props.pledge);
     }
   }
   componentDidUpdate(){
-    var google = window.google
     if (google.charts) {
     google.charts.load('current', {'packages':['corechart', 'geochart'], 'mapsApiKey': Meteor.settings.public.GoogleMapsAPIKey});
     }
     if (google.visualization && !this.props.loading) {
-      this.drawCharts();
+      this.drawCharts(this.props.pledge);
     }
 
   }
 
   componentWillReceiveProps(nextProps) {
-    var google = window.google
   if (!nextProps.loading)
-  {var dateList = this.getDateList()
+  {var dateList = this.getDateList(nextProps.pledge)
 
     var pledgeGrouped = _.countBy(dateList, 'pledgeId')
     //pledgeGrouped = _.sortBy(pledgeGrouped, )
@@ -98,36 +153,19 @@ export class Analytics extends React.Component{
   }
   }
 
-  getDateList() {
-    var google = window.google
-      var dateList
-      if (this.state.minDate && this.state.maxDate && this.state.pledge && this.state.pledge !== 'all') {
-        var minDate = this.state.minDate
-        var newMaxDate = moment(this.state.maxDate).clone().toDate()
-        var otherDate = new Date(newMaxDate.setHours(23,59,59,999) )
-        dateList = PledgeVisits.find({'visit.date': {$ne: undefined},
-        'visit.date': {$gte: minDate}, 'visit.date': {$lte: otherDate}, pledgeId: this.state.pledge},
-        {fields: {'visit.date' : 1, user: 1, signUpClick: 1,  'visit.referer': 1,
-          'visit.geo.ll': 1, 'visit.userAgent.device.type':1, 'pledgeId': 1, 'type': 1}}).fetch()
+  getDateList(pledge) {
 
-      } else if (this.state.minDate && this.state.maxDate) {
+      var dateList
+      if (this.state.minDate && this.state.maxDate) {
         var minDate = this.state.minDate
         var newMaxDate = moment(this.state.maxDate).clone().toDate()
         var otherDate = new Date(newMaxDate.setHours(23,59,59,999) )
         dateList = PledgeVisits.find({'visit.date': {$ne: undefined},
-        'visit.date': {$gte: minDate}, 'visit.date': {$lte: otherDate}},
+        'visit.date': {$gte: minDate}, 'visit.date': {$lte: otherDate}, pledgeId: pledge._id},
         {fields: {'visit.date' : 1, user: 1, signUpClick: 1,  'visit.referer': 1,
           'visit.geo.ll': 1, 'visit.userAgent.device.type':1, 'pledgeId': 1, 'type': 1}}).fetch()
-      } else if (this.state.pledge && this.state.pledge !== 'all') {
-        var minDate = this.state.minDate
-        var newMaxDate = moment(this.state.maxDate).clone().toDate()
-        var otherDate = new Date(newMaxDate.setHours(23,59,59,999) )
-        dateList = PledgeVisits.find({'visit.date': {$ne: undefined}, pledgeId: this.state.pledge},
-        {fields: {'visit.date' : 1, user: 1, signUpClick: 1,  'visit.referer': 1,
-          'visit.geo.ll': 1, 'visit.userAgent.device.type':1, 'pledgeId': 1, 'type': 1}}).fetch()
-      }
-        else {
-        dateList = PledgeVisits.find({'visit.date': {$ne: undefined}},
+      } else {
+        dateList = PledgeVisits.find({'visit.date': {$ne: undefined}, pledgeId: pledge._id},
         {fields: {'visit.date' : 1, user: 1, signUpClick: 1,  'visit.referer': 1,
           'visit.geo.ll': 1, 'visit.userAgent.device.type':1, 'pledgeId': 1, 'type': 1}}).fetch()
       }
@@ -136,9 +174,8 @@ export class Analytics extends React.Component{
     )
   }
 
-  drawCharts = () => {
-    var google = window.google
-    var dateList = this.getDateList()
+  drawCharts = (pledge) => {
+    var dateList = this.getDateList(pledge)
 
     var dateCount = {}
     var userCount = {}
@@ -347,15 +384,20 @@ export class Analytics extends React.Component{
     this.setState({pledge: value})
   }
 
+  handleBackClick = (e) => {
+    e.preventDefault()
+    browserHistory.push('/pages/pledges/' + this.props.params.pledge +'/' + this.props.params._id)
+  }
+
 
   render() {
-    var google = window.google
+
     console.log(this.state)
     if (google.charts) {
       google.charts.load('current', {'packages':['corechart', 'geochart'], 'mapsApiKey': Meteor.settings.public.GoogleMapsAPIKey});
     }
     if (google.visualization && !this.props.loading) {
-      this.drawCharts();
+      this.drawCharts(this.props.pledge);
     }
 
     if (this.props.user && this.props.user.justAddedPledge) {
@@ -364,8 +406,23 @@ export class Analytics extends React.Component{
 
     return (
       <div>
+        <span onTouchTap={this.handleBackClick}>
+        <div style={{display: 'flex' ,backgroundColor: grey500, color: 'white'}}>
+                  <IconButton
+            iconStyle={styles.smallIcon}
+            style={styles.small}
+          >
+            <ArrowBack />
+          </IconButton>
+
+        <div style={{width: '100%', paddingLeft: '16px', backgroundColor: grey500, color: 'white', alignItems: 'center', display: 'flex'}}>
+
+          BACK TO PLEDGE
+        </div>
+        </div>
+      </span>
         <Subheader>
-          Analytics - who is looking at All For One pledges
+          Analytics - who is looking at your pledge
         </Subheader>
         <Divider/>
         <Subheader style={{height: '36px'}}>
@@ -388,62 +445,28 @@ export class Analytics extends React.Component{
           onChange={this.handleChangeMaxDate}/>
         </div>
       </div>
-        <Subheader style={{height: '36px'}}>
-          Look at individual pledges
-        </Subheader>
-        <div>
-          <DropDownMenu value={this.state.pledge} onChange={this.handleChange}>
-            <MenuItem value='all' primaryText='All'/>
-            {!this.props.loading ?
-              this.props.pledges.map((pledge) => (
-                <MenuItem value={pledge._id} primaryText={pledge.title} />
-              )) : null}
-          </DropDownMenu>
-        </div>
-        <div style={{marginBottom: '20px'}} id="graph" ref='graph'>
+      <div style={{marginBottom: '20px'}} id="graph" ref='graph'>
 
-        </div>
-        <Divider/>
-          <div style={{display: 'flex', marginBottom: '2px', marginTop: '20px'}}>
-            {this.state.pledge === 'all' ?
-            <Table selectable={false}>
-              <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
-                <TableRow>
+      </div>
 
-                  <TableHeaderColumn style={{width: '40%'}}>Pledge</TableHeaderColumn>
-                  <TableHeaderColumn style={{width: '20%'}}>Visits</TableHeaderColumn>
-                  <TableHeaderColumn style={{width: '20%'}}>Signups</TableHeaderColumn>
-                  <TableHeaderColumn style={{width: '20%'}}>Conversion</TableHeaderColumn>
+      <Divider style={{marginBottom: '20px'}}/>
+      <div style={{display: 'flex', marginBottom: '2px', marginTop: '20px'}}>
+      <div style={{width: '50%'}} id='device'/>
+      <div style={{width: '50%'}} id='trafficSource'/>
+      </div>
+      <Divider style={{marginBottom: '20px'}}/>
+      <div id='geochart'/>
 
-                </TableRow>
-              </TableHeader>
-              <TableBody displayRowCheckbox={false}>
-                {this.state.byPledge ? this.state.byPledge.map((pledge) => (
-                  <TableRow>
+        {this.props.loading ? <div style={{height: '60vh', width: '100%',
+                                              display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column'}}>
 
-                    <TableRowColumn style={{width: '40%'}}>{pledge.title}</TableRowColumn>
-                    <TableRowColumn style={{width: '20%'}}>{pledge.visits}</TableRowColumn>
-                    <TableRowColumn style={{width: '20%'}}>{pledge.signups}</TableRowColumn>
-                    <TableRowColumn style={{width: '20%'}}>{Math.round(pledge.signups/pledge.visits*100, 2) + '%'}</TableRowColumn>
-                  </TableRow>
-                )) : null}
-
-              </TableBody>
-            </Table> : null}
-          </div>
-          <div style={{height: '20px'}}/>
-        <Divider style={{marginBottom: '20px'}}/>
-        <div style={{display: 'flex', marginBottom: '2px', marginTop: '20px'}}>
-        <div style={{width: '50%'}} id='device'/>
-        <div style={{width: '50%'}} id='trafficSource'/>
-        </div>
-        <Divider style={{marginBottom: '20px'}}/>
-        <div id='geochart'/>
-        {this.props.loading ? <div style={{height: '80vh', width: '100%',
-                                              display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
         <CircularProgress/>
+        <Subheader style={{paddingLeft: '0px', textAlign: 'center'}}>
+          If nothing appears in 10 seconds, <br/>You should refresh the page
+        </Subheader>
+
         </div> :
-        <DocumentTitle title='Pledge List'>
+        <DocumentTitle title='Pledge Analytics'>
         <div>
 
         </div>
@@ -454,18 +477,17 @@ export class Analytics extends React.Component{
   }
 }
 
-Analytics.propTypes = {
-  pledges: PropTypes.array.isRequired,
+PledgeAnalytics.propTypes = {
   loading: PropTypes.bool.isRequired
 }
 
-export default createContainer(() => {
+export default createContainer(({params}) => {
   const subscriptionHandler = Meteor.subscribe("pledgeVisits");
   const pledgeHandler = Meteor.subscribe("pledgeList");
-
+  console.log(params)
   return {
     pledgeVisits: PledgeVisits.find({}).fetch(),
-    pledges: Pledges.find({title: {$ne: 'Untitled Pledge'}, deadline: { $gte : new Date()}}, {fields: {title: 1}}).fetch(),
+    pledge: Pledges.findOne({_id: params._id}),
     loading: !subscriptionHandler.ready() || !pledgeHandler.ready(),
   };
-}, Analytics);
+}, PledgeAnalytics);

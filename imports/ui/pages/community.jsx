@@ -1127,7 +1127,7 @@ export default createContainer(() => {
   const contributionData = Meteor.subscribe("myContributions");
 
   return {
-    user: Meteor.users.findOne({_id: Meteor.userId()}),
+    user: Meteor.users.findOne({_id: Meteor.userId()}, {fields: {visits: 0, suggestions: 0, influence: 0, skills: 0}}),
     contributions: Contributions.find({}).fetch(),
     pledges: Pledges.find({title: {$ne: 'Untitled Pledge'}}).fetch(),
     interestList: Interests.find({}).fetch(),

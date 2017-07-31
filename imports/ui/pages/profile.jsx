@@ -22,8 +22,8 @@ import FlatButton from 'material-ui/FlatButton';
 import {Link, browserHistory} from 'react-router';
 import {Pledges} from '/imports/api/pledges.js';
 import Leaderboard from '/imports/ui/components/leaderboard.jsx';
+import ProfilePledges from '/imports/ui/components/profilepledges.jsx';
 import SocialLeaderboard from '/imports/ui/components/socialleaderboard.jsx';
-import Streaks from '/imports/ui/components/streaks.jsx';
 import Badges from '/imports/ui/components/badges.jsx';
 import SuggestionList from '/imports/ui/components/suggestionlist.jsx';
 import ExpandMore from 'material-ui/svg-icons/navigation/expand-more';
@@ -36,10 +36,9 @@ import CircularProgress from 'material-ui/CircularProgress';
 import { Accounts } from 'meteor/accounts-base';
 import Publish from 'material-ui/svg-icons/editor/publish';
 import InfoIcon from '/imports/ui/components/infoicon.jsx';
-import ChartistGraph from 'react-chartist';
-import Chartist from 'chartist'
-
-require('chartist-plugin-legend');
+import TextField from 'material-ui/TextField'
+import Email from 'material-ui/svg-icons/communication/email';
+import SMS from 'material-ui/svg-icons/communication/textsms';
 
 const FacebookIcon = generateShareIcon('facebook');
 const TwitterIcon = generateShareIcon('twitter');
@@ -109,27 +108,15 @@ var OneSignal = window.OneSignal || [];
 export class Profile extends Component {
   constructor(props) {
     super(props);
-      this.state = {pledgeAdded: true, permissionOpen: false}
+    var popup = this.props.justAddedPledge !== '' && this.props.justAddedPledge !== undefined
+    var messenger = !popup
+    this.state = {pledgeAdded: false, permissionOpen: false, popup: popup
+      , messenger: messenger, messengerPopup: false}
+
 
   }
 
-  handleNewPledge = (e) => {
-    e.preventDefault()
-    Meteor.call( 'newPledge', ( error, pledgeId ) => {
-      if ( error ) {
-        Bert.alert( error.reason, 'danger' );
-      } else {
-        Meteor.call('findPledgeSlug', pledgeId, (error, pledgeSlug) => {
-          if (error) {
-            Bert.alert(error.reason, "Can't find pledge slug")
-          } else {
-          browserHistory.push( `/pages/pledges/${ pledgeSlug }/${ pledgeId }/edit` );
-          Bert.alert( 'All set! Get to typin\'', 'success' );
-        }
-        })
-      }
-    })
-  }
+
 
   handleNotificationSend = (e) => {
     e.preventDefault()
@@ -155,22 +142,46 @@ export class Profile extends Component {
     this.setState({pledgeAdded: false})
   }
 
+  openPopup = () => {
+    console.log('popup should open')
+    this.setState({pledgeAdded: true})
+  }
+
+  openMessengerPopup = () => {
+    console.log('messenger popup should open')
+    this.setState({messengerPopup: true})
+  }
+
   componentDidMount() {
       console.log('Timeout should be loading')
       if (this.props.justAddedPledge !== undefined && this.props.user && this.props.user.OneSignalUserId === undefined)
         {this.carousel = window.setTimeout(this.handleNotificationsClick, 15000)}
+      if (this.state.popup) {
+        console.log('In 10 seconds this will load')
+        this.aCarousel = window.setTimeout(this.openPopup, 10000)
+      } else  {
+        //console.log('In 10 seconds show messenger prompt')
+        //this.mCarousel = window.setTimeout(this.openMessengerPopup, 10000)
+      }
     }
 
     componentWillUnmount() {
       if (this.props.justAddedPledge !== undefined)
       {clearTimeout(this.carousel)}
-    }
+      if (this.state.popup) {
+        clearTimeout(this.aCarousel)
+      }
 
-  handleMoreDetail(id, slug, event) {
-    event.preventDefault()
-    Session.set('allforone', true)
-    browserHistory.push(`/pages/pledges/${ slug }/${id}`)
+    }
+/*
+  componentWillReceiveProps(nextProps) {
+    if (!nextProps.loading && Meteor.user().userMessengerId !== undefined) {
+      console.log('clearing messenger timeout')
+      clearTimeout(this.mCarousel)
+    }
   }
+*/
+
 
   handleScore = (e) => {
     e.preventDefault()
@@ -194,8 +205,10 @@ export class Profile extends Component {
   }
 
   handleNotificationsClick = (e) => {
-    if (e) {e.preventDefault()}
+    if (e) {e.preventDefault()};
+
     var OneSignal = window.OneSignal
+    console.log(OneSignal)
 
     OneSignal.push(function() {
       OneSignal.on('subscriptionChange', function (isSubscribed) {
@@ -207,28 +220,30 @@ export class Profile extends Component {
       });
     });
 
-      OneSignal.push(function() {
-      /* These examples are all valid */
-      OneSignal.isPushNotificationsEnabled(function(isEnabled) {
-        if (isEnabled)
-          console.log("Push notifications are enabled!");
+    OneSignal.push(function() {
+    /* These examples are all valid */
+    OneSignal.isPushNotificationsEnabled(function(isEnabled) {
+      if (isEnabled)
+        console.log("Push notifications are enabled!");
 
-        else
-          console.log("Push notifications are not enabled yet.");
+      else
+        console.log("Push notifications are not enabled yet.");
 
+    });
+    });
+
+    OneSignal.push(function() {
+      OneSignal.registerForPushNotifications({
+        modalPrompt: true
       });
-      });
-
-
-
-        OneSignal.push(function() {
-          OneSignal.registerForPushNotifications({
-            modalPrompt: true
-          });
-        });
+    });
 
 
 }
+
+  handleMessengerClose = () => {
+    this.setState({messengerPopup: false})
+  }
 
   getUserID = (e) => {
     e.preventDefault()
@@ -245,8 +260,51 @@ export class Profile extends Component {
 
   handleFriendClick(_id, e) {
     e.preventDefault()
+    mixpanel.track('Clicked on friend')
     var friend = Meteor.users.findOne({'services.facebook.id': _id})
     browserHistory.push('/profile/' + friend._id)
+  }
+
+  handleChangeEmail = (event, newValue) => {
+    this.setState({email: newValue})
+  }
+
+  handleKeypress = (e) => {
+    if (e.key == 'Enter') {
+      e.preventDefault()
+      this.submitEmail()
+    }
+  }
+
+  handleChangePhone = (event, newValue) => {
+    this.setState({phone: newValue})
+  }
+
+  handlePhoneKeypress = (e) => {
+    if (e.key == 'Enter') {
+      e.preventDefault()
+      this.submitPhone()
+    }
+  }
+
+  submitPhone = () => {
+    Meteor.call('updatePhone', this.state.phone, (err, result) => {
+      if (err) {
+        Bert.alert(err.reason, 'danger')
+      } else {
+        Bert.alert('Phone number updated', 'success')
+      }
+    })
+  }
+
+  submitEmail = () => {
+    Meteor.call('updateEmail', this.state.email, (err, result) => {
+      if (err) {
+        Bert.alert(err.reason, 'danger')
+      } else {
+        Bert.alert('Email updated', 'success')
+      }
+    })
   }
 
   render () {
@@ -321,20 +379,7 @@ export class Profile extends Component {
 
     };
 
-    var options = {
-      low: 0,
-      lineSmooth: Chartist.Interpolation.cardinal({
-        fillHoles: true,
-      }),
-      fullWidth: true,
-      axisX:  { showGrid: false },
-      plugins: [
-        Chartist.plugins.legend({
-          legendNames: ['Total', 'Friends joining pledges', 'People joining pledges you created', 'Your suggestions people like']
-          , position: 'bottom'
-        })
-      ]
-    };
+
 
     var type = 'Line'
     */
@@ -346,7 +391,7 @@ export class Profile extends Component {
     var justAddedPledgeCollection = undefined
     if (this.props.justAddedPledgeId !== undefined) {
       console.log('looking for a pledge in documents')
-      justAddedPledgeCollection = this.props.pledges.find(pledge => (pledge._id === this.props.justAddedPledgeId))
+      justAddedPledgeCollection = Pledges.findOne({_id: this.props.justAddedPledgeId})
       console.log(justAddedPledgeCollection)
     }
     console.log(this.props)
@@ -381,10 +426,10 @@ export class Profile extends Component {
                   subtitle={'Joined ' + this.props.thisUser.createdAt.toDateString()}
                   avatar={this.props.thisUser.profile.picture}
                 />
-              <Subheader>Notifications</Subheader>
-                <ListItem
+              <Subheader>Contact methods for when a pledge finishes:</Subheader>
+              {/*}  <ListItem
                   onTouchTap={this.handleNotificationsClick}
-                  primaryText="Tell me when my pledges start"
+                  primaryText="Send a push notification"
                   leftAvatar={<IconButton
                     style={{padding: '0px'}}
                     iconStyle={{height: '36px', width: '36px'}}
@@ -397,7 +442,7 @@ export class Profile extends Component {
                   />
                   <ListItem
                     onTouchTap={this.handlePermissionsPopup}
-                    primaryText="Tell my friends when my pledge is about to start"
+                    primaryText="Tell my friends on Facebook"
                     leftAvatar={<IconButton
                       style={{padding: '0px'}}
                       iconStyle={{height: '36px', width: '36px'}}
@@ -407,9 +452,45 @@ export class Profile extends Component {
                       />
                       </IconButton>
                       }
-                    />
-
-                {/*
+                    /> */}
+                  <ListItem
+                    innerDivStyle={{paddingTop: '0px', paddingBottom: '5px'}}
+                    leftAvatar={<IconButton style={{padding: '0px'}}
+                    iconStyle={{height: '36px', width: '36px'}}
+                    >
+                    <Email
+                      color={grey500}
+                      />
+                  </IconButton>
+                  }
+                    children={<TextField
+                      hintText='Hit Enter to change e-mail'
+                      onKeyPress={this.handleKeypress}
+                      onChange={this.handleChangeEmail} defaultValue={this.props.thisUser.profile.email?
+                        this.props.thisUser.profile.email
+                        : this.props.thisUser.services.facebook.email}/>}
+                    >
+                  </ListItem>
+                  <ListItem
+                    innerDivStyle={{paddingTop: '0px', paddingBottom: '5px'}}
+                    leftAvatar={<IconButton style={{padding: '0px'}}
+                    iconStyle={{height: '36px', width: '36px'}}
+                    >
+                    <SMS
+                      color={grey500}
+                      />
+                  </IconButton>
+                  }
+                    children={<TextField
+                      hintText='By SMS - enter mobile number'
+                      onKeyPress={this.handlePhoneKeypress}
+                      onChange={this.handleChangePhone} defaultValue={this.props.thisUser.profile.phone?
+                        this.props.thisUser.profile.phone
+                        : ''}/>}
+                    >
+                  </ListItem>
+                  {this.props.thisUser && !this.props.thisUser.userMessengerId ?
+                    <div>
                 <Subheader>Sent alerts to my Facebook</Subheader>
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                   <div style={{marginLeft: '85px', marginBottom: '20px', marginTop: '5px'}}>
@@ -417,174 +498,20 @@ export class Profile extends Component {
                   appId={Meteor.settings.public.FacebookAppId}
                   pageId={Meteor.settings.public.FacebookPageId}
                   size='large'
-                  color='white'
+                  color='blue'
+                  passthroughParams={Meteor.userId()}
                 />
               </div>
 
-              </div>
-              <FlatButton label='FB message' onTouchTap={this.handleFacebookNotification}/>
-                */}
+            </div>
+            </div> : null}
+
 
 
             </Card>
 
             <Card style={{marginTop: '20px'}}>
-              <Subheader>Your pledges</Subheader>
-                <List>
-                  <div style={{display: 'flex'}}>
-
-
-                  </div>
-
-                    <ListItem
-                      primaryText='Committed Pledges'
-                      primaryTogglesNestedList={true}
-                      style={{backgroundColor: grey200}}
-
-                      nestedListStyle={{marginLeft: '0px'}}
-                      nestedItems={
-                        this.props.pledges.map((pledge) => (
-                          (pledge.title !== 'Untitled Pledge' && pledge.pledgedUsers.includes(Meteor.userId())) ?
-                    <ListItem
-                      primaryText={pledge.title}
-                      secondaryText={pledge.duration === 'Once' ? 'Just Once' : 'For ' + pledge.duration}
-                      leftAvatar={pledge.coverPhoto === undefined ? <Avatar>{pledge.title.charAt(0)}</Avatar> : <Avatar src={pledge.coverPhoto}/>}
-                      primaryTogglesNestedList={true}
-                      style={{marginLeft: '0px'}}
-
-                      innerDivStyle={{marginLeft: '0px'}}
-                      nestedItems={[
-                        <ListItem
-
-                          innerDivStyle={{marginLeft: '0px'}}
-                          children={
-                          <div>
-                            <div onTouchTap={this.handleMoreDetail.bind(this, pledge._id, pledge.slug)}>
-                            <LinearProgress color={amber500} mode="determinate" value={pledge.pledgedUsers.length/pledge.target*100} />
-
-                            <div style={styles.cardTitle}>
-                              <div style={styles.bigTitle}>
-                                Commitments:
-                              <div style={styles.smallTitle}>
-                                <div style={styles.currentCommitments}><b>{pledge.pledgedUsers.length}</b> people</div>
-                                <div style={styles.targetCommitments}>out of {pledge.target}</div>
-                              </div>
-                              </div>
-                              <div style={styles.bigTitle}>
-                                Deadline:
-                                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                                  {pledge.deadline ? dateDiffInDays(new Date(),pledge.deadline) : 'Some'} days
-                                </div>
-                              </div>
-                            </div>
-                            </div>
-
-
-                            <Subheader style={{ marginTop: '10px'}}>Share your pledge</Subheader>
-
-
-                              <div style={{display: 'flex', justifyContent: 'center', marginLeft: '-34px'}}>
-
-                                  <FacebookShareButton
-                                    style={{cursor: 'pointer'}}
-                                    children = {<div>
-                                      <FacebookIcon size={36} round={true}/>
-                                  </div>}
-                                    url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                                    title={pledge.title} description={"I just agreed to " + pledge.title + " for " + pledge.duration + " - as long as " + (pledge.target-pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
-                                    picture = {pledge.coverPhoto ? pledge.coverPhoto : 'https://www.allforone.io/splash.jpg'}
-                                    />
-                                  <div style={{width: '10px'}}></div>
-                                  <TwitterShareButton
-                                    style={{cursor: 'pointer'}}
-                                    children = {<TwitterIcon size={36} round={true}/>}
-                                    url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                                    title={"If another " + (pledge.target-pledge.pledgedUsers.length).toString() + ' people join me, I am ' + pledge.title + ' for ' + pledge.duration }
-                                    />
-                                </div>
-                            </div>
-
-
-                        }/>
-                      ]}
-                    />
-                 : null
-               ))}/>
-
-                    <ListItem
-                      primaryText='Created Pledges'
-                      primaryTogglesNestedList={true}
-                      style={{backgroundColor: grey200}}
-                      nestedListStyle={{marginLeft: '0px'}}
-                      nestedItems={
-                    this.props.pledges.map((pledge) => (
-                      (pledge.creatorId === Meteor.userId()) ?
-                  <ListItem
-                        primaryText={pledge.title}
-                        secondaryText={pledge.duration === 'Once' ? 'Just Once' : 'For ' + pledge.duration}
-                        leftAvatar={pledge.coverPhoto === undefined ? <Avatar>{pledge.title.charAt(0)}</Avatar> : <Avatar src={pledge.coverPhoto}/>}
-                        primaryTogglesNestedList={true}
-                        key={pledge.title}
-                        innerDivStyle={{marginLeft: '0px'}}
-                        nestedItems={[
-                          <ListItem
-
-                            innerDivStyle={{marginLeft: '0px'}}
-                            key={pledge._id + pledge.slug}
-                            children={
-                            <div>
-                            <div onTouchTap={this.handleMoreDetail.bind(this, pledge._id, pledge.slug)}>
-                              <LinearProgress color={amber500} mode="determinate" value={pledge.pledgedUsers.length/pledge.target*100} />
-
-                              <div style={styles.cardTitle}>
-                                <div style={styles.bigTitle}>
-                                  Commitments:
-                                <div style={styles.smallTitle}>
-                                  <div style={styles.currentCommitments}><b>{pledge.pledgedUsers.length}</b> people</div>
-                                  <div style={styles.targetCommitments}>out of {pledge.target}</div>
-                                </div>
-                                </div>
-                                <div style={styles.bigTitle}>
-                                  Deadline:
-                                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                                    {pledge.deadline ? dateDiffInDays(new Date(),pledge.deadline) : 'Some'} days
-                                  </div>
-                                </div>
-                              </div>
-
-                            </div>
-                              <Subheader style={{marginLeft: '-34px', marginTop: '10px'}}>Share your pledge</Subheader>
-
-
-                                <div style={{display: 'flex', justifyContent: 'center', marginLeft: '-34px'}}>
-                                  <FacebookShareButton
-                                    style={{cursor: 'pointer'}}
-                                    children = {<div>
-                                      <FacebookIcon size={36} round={true}/>
-                                  </div>}
-                                    url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                                    title={pledge.title} description={"I just agreed to " + pledge.title + " for " + pledge.duration + " - as long as " + (pledge.target-pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
-                                    picture = {pledge.coverPhoto ? pledge.coverPhoto : 'https://www.allforone.io/splash.jpg'}
-                                    />
-                                  <div style={{width: '10px'}}></div>
-                                  <TwitterShareButton
-                                    style={{cursor: 'pointer'}}
-                                    children = {<TwitterIcon size={36} round={true}/>}
-                                    url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                                    title={"If another " + (pledge.target-pledge.pledgedUsers.length).toString() + ' people join me, I am ' + pledge.title + ' for ' + pledge.duration }
-                                    />
-                                </div>
-                              </div>
-
-
-                          }/>
-                        ]}
-                      />
-                    : null ) )}
-                    />
-                  <div style={{height: '16px'}}/>
-                  <FlatButton label='Create New Pledge' onTouchTap={this.handleNewPledge} secondary={true} fullWidth={true}/>
-                  </List>
+                <ProfilePledges/>
                   </Card>
 
                 <Card style={{marginTop: '20px'}}>
@@ -640,7 +567,6 @@ export class Profile extends Component {
                   Impact of your pledges: {this.props.thisUser.score.pledgeImpact} points<br/>
                 Popular threads: {this.props.thisUser.score.thread} points<br/>
 
-              {/*<ChartistGraph className='.ct-chart-line-legendnames' data={data} options={options} type={type} /> */}
 
                       </div>
                       </Tab>
@@ -679,7 +605,7 @@ export class Profile extends Component {
               </div>
             </Dialog>
             <Dialog
-              title="Well done - now share your pledge!"
+              title="Maybe you could share your pledge?"
               modal={true}
               open={this.props.justAddedPledge !== '' && this.props.justAddedPledge
                 !== undefined && this.state.pledgeAdded !== false}
@@ -698,7 +624,7 @@ export class Profile extends Component {
                   </div>}
                   url = {'https://www.allforone.io/pages/pledges/' + this.props.justAddedPledge + '/' + this.props.justAddedPledgeId}
                   title={justAddedPledgeTitle} description={"I just agreed to "+ justAddedPledgeTitle.toLowerCase() +  " for " + justAddedPledgeDuration.toLowerCase() + " - as long as " + (justAddedPledgeTarget-justAddedPledgeCollection.pledgeCount).toString() + " more people do the same. Care to join me?"}
-                  picture = {justAddedPledgePicture ? justAddedPledgePicture : '/images/splash.jpg'}
+                  picture = {justAddedPledgePicture ? justAddedPledgePicture : 'https://www.allforone.io/images/splash.jpg'}
                   />
                 <div style={{width: '10px'}}></div>
                 <TwitterShareButton
@@ -716,9 +642,36 @@ export class Profile extends Component {
                 />
             ] : null}
               >
-              1) Unless this pledge reaches its target, no one is going to do anything<br/>
-            2) If you share it with your friends, you are much more likely to complete it<br/>
-          3) It gets people talking about climate change, which we really need <br/>
+              This pledge will only happen if it reaches its target.
+              Every share counts.
+            </Dialog>
+            <Dialog
+              modal={true}
+              open={this.state.messengerPopup}
+              onRequestClose={this.handleMessengerClose.bind(this)}
+              actions={[
+                <FlatButton
+                  label="No Thanks"
+                  primary={true}
+                  onTouchTap={this.handleClose.bind(this)}
+                />
+            ]}
+              >
+              <Subheader style={{paddingLeft: '0px', textAlign: 'center'}}>
+                Don't forget about your pledges
+              </Subheader>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                <div style={{marginLeft: '85px', marginBottom: '20px', marginTop: '5px'}}>
+              <MessengerPlugin
+                appId={Meteor.settings.public.FacebookAppId}
+                pageId={Meteor.settings.public.FacebookPageId}
+                size='large'
+                color='blue'
+                passthroughParams={Meteor.userId()}
+              />
+            </div>
+
+          </div>
             </Dialog>
           </div> }
           </DocumentTitle>
@@ -731,20 +684,17 @@ export class Profile extends Component {
 Profile.propTypes = {
   users: PropTypes.array.isRequired,
   loading: PropTypes.bool.isRequired,
-  pledges: PropTypes.array.isRequired,
   thisUser: PropTypes.object.isRequired,
 };
 
 export default createContainer(() => {
   const subscriptionHandler = Meteor.subscribe("userData");
-  const pledgeHandler = Meteor.subscribe("myPledges");
   const scoreHandler = Meteor.subscribe("userScores");
 
   return {
-    loading: !subscriptionHandler.ready() || !pledgeHandler.ready() || !scoreHandler.ready(),
+    loading: !subscriptionHandler.ready()  || !scoreHandler.ready(),
     users: Meteor.users.find({}).fetch(),
-    thisUser: Meteor.users.findOne({_id: Meteor.userId()}),
-    pledges: Pledges.find().fetch(),
-    userScores: Meteor.users.find({}, {sort: {'score.total': -1}}).fetch(),
+    thisUser: Meteor.users.findOne({_id: Meteor.userId()}, {fields: {visits: 0, suggestions: 0, influence: 0, skills: 0}}),
+    userScores: Meteor.users.find({}, {sort: {'score.total': -1}}, {fields: {'profile': 1, 'email.address':1, score: 1, 'services.facebook.id': 1}}).fetch(),
   };
 }, Profile);

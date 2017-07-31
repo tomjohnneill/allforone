@@ -51,6 +51,7 @@ export class PledgeList extends React.Component{
   handleCreatePledge = (e) => {
     e.preventDefault()
     if (Meteor.userId() === null) {
+      mixpanel.track("Clicked create account")
       Meteor.loginWithFacebook({ requestPermissions: ['email', 'public_profile', 'user_friends']},function(error, result) {
         if (error) {
             console.log("facebook login didn't work at all")
