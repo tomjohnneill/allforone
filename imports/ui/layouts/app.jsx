@@ -1,6 +1,5 @@
 import React from 'react';
 import Navigation from '../components/navigation.jsx';
-import BottomBar from '../components/bottombar.jsx';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MediaQuery from 'react-responsive';
