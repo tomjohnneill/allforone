@@ -40,6 +40,15 @@ export const oneSignal=function() {
 Meteor.startup(function() {
     if (Meteor.isClient) {
         oneSignal();
-        Meteor.absoluteUrl.defaultOptions.rootUrl = 'https://www.allforone.io'
+
     }
+    var stripeKey = Meteor.settings.public.stripe.PublishableKey;
+    Stripe.setPublishableKey( stripeKey );
+
+    var handler = StripeCheckout.configure({
+      key: Meteor.settings.public.stripe.PublishableKey,
+      token: function(token) {
+        console.log(token)
+      }
+      });
 });
