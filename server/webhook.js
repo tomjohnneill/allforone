@@ -67,16 +67,25 @@ if (Meteor.isServer) {
       }})
     }
     if (this.bodyParams.entry[0].messaging[0].message && this.bodyParams.entry[0].messaging[0].message.text) {
+
       if (this.bodyParams.entry[0].messaging[0].message.text === 'Send me the menu') {
         Meteor.call('sendFirstQuestion', this.bodyParams.entry[0].messaging[0].sender.id)
       } else {
+        try {
+          Meteor.call('checkForFBReply', this.bodyParams.entry[0].messaging[0].message.text, this.bodyParams.entry[0].messaging[0].sender.id)
+        } catch (error) {
+          console.log(error)
+        }
+      }
+      /*
       Meteor.call('sendTextMessage', this.bodyParams.entry[0].messaging[0].sender.id,
       "Sorry, we're not great at replying to text messages just yet.")
       Meteor.call('sendButtonMessage',this.bodyParams.entry[0].messaging[0].sender.id,
       "Would you be interested in some suggestions?",
       "Yes please",
       "SEND_ME_SOME_SUGGESTIONS")
-      }
+      */
+
     }
     if (this.bodyParams.entry[0].messaging[0].postback && this.bodyParams.entry[0].messaging[0].postback.payload === 'SEND_ME_SOME_SUGGESTIONS') {
       Meteor.call("sendSuggestionTemplate", this.bodyParams.entry[0].messaging[0].sender.id,
