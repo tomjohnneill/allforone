@@ -1,5 +1,4 @@
 import React , {PropTypes} from 'react';
-import ReactDOM from 'react-dom';
 import { createContainer } from 'meteor/react-meteor-data';
 import {grey200, grey500, grey100} from 'material-ui/styles/colors';
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
@@ -9,16 +8,23 @@ import FlatButton from 'material-ui/FlatButton';
 import Divider from 'material-ui/Divider';
 import {Tabs, Tab} from 'material-ui/Tabs';
 import { Session } from 'meteor/session';
-import FacebookProvider, { Comments } from 'react-facebook';
 import Dialog from 'material-ui/Dialog';
 import {Pledge} from '/imports/ui/pages/pledge.jsx'
-import Profile from '/imports/ui/pages/profile.jsx';
 import {Link, browserHistory} from 'react-router';
-import ThreadList from '/imports/ui/pages/threadlist.jsx';
 import PledgeList from '../../ui/pages/pledgelist.jsx';
-import Community from '../../ui/pages/community.jsx';
 import SwipeableViews from 'react-swipeable-views';
 import Subheader from 'material-ui/Subheader';
+import Loadable from 'react-loadable';
+import Support from '/imports/ui/pages/support.jsx';
+
+const Loading = () => (
+  <div/>
+)
+
+const ProfileLoadable = Loadable({
+  loader: () => import('/imports/ui/pages/profile.jsx'),
+  loading: Loading
+});
 
 export class UserTabs extends React.Component{
   constructor(props) {
@@ -113,11 +119,13 @@ handleClose = () => this.setState({open: false});
           <PledgeList hidden={this.props.params.tab !== 'pledges'}/>
         </div>
         <div>
-          <Profile hidden={true} justAddedPledge={this.props.params.pledge} justAddedPledgeId = {this.props.params._id}/>
+          <ProfileLoadable hidden={true} justAddedPledge={this.props.params.pledge} justAddedPledgeId = {this.props.params._id}/>
           <div style={{height: '36px'}}/>
         </div>
         <div>
-          <Community hidden={true}/>
+
+            <Support hidden={true}/>
+
           <div style={{height: '36px'}}/>
         </div>
         </SwipeableViews>
@@ -138,7 +146,9 @@ handleClose = () => this.setState({open: false});
             </Tab>
             <Tab label="Community" buttonStyle={{height: '36px'}} value="community">
               <div>
-                <Community hidden={true}/>
+
+                  <Support hidden={true}/>
+
                 <div style={{height: '36px'}}/>
               </div>
             </Tab>

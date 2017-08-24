@@ -1,5 +1,4 @@
 import React, { Component, PropTypes } from 'react';
-import ReactDOM from 'react-dom';
 import { Meteor } from 'meteor/meteor';
 import { createContainer } from 'meteor/react-meteor-data';
 import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
@@ -12,18 +11,12 @@ import {List, ListItem} from 'material-ui/List';
 import Subheader from 'material-ui/Subheader';
 import Avatar from 'material-ui/Avatar'
 import { Session } from 'meteor/session';
-import {
-  ShareButtons,
-  ShareCounts,
-  generateShareIcon
-} from 'react-share';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import {Link, browserHistory} from 'react-router';
 import {Pledges} from '/imports/api/pledges.js';
 import Leaderboard from '/imports/ui/components/leaderboard.jsx';
 import SocialLeaderboard from '/imports/ui/components/socialleaderboard.jsx';
-import Streaks from '/imports/ui/components/streaks.jsx';
 import Badges from '/imports/ui/components/badges.jsx';
 import SuggestionList from '/imports/ui/components/suggestionlist.jsx';
 import ExpandMore from 'material-ui/svg-icons/navigation/expand-more';
@@ -32,37 +25,17 @@ import IconButton from 'material-ui/IconButton';
 import {dateDiffInDays} from '/imports/ui/pages/dynamicpledge.jsx'
 import NotificationsActive from 'material-ui/svg-icons/social/notifications-active'
 import CircularProgress from 'material-ui/CircularProgress';
+import Loadable from 'react-loadable';
 
-const FacebookIcon = generateShareIcon('facebook');
-const TwitterIcon = generateShareIcon('twitter');
-const TelegramIcon = generateShareIcon('telegram');
-const WhatsappIcon = generateShareIcon('whatsapp');
-const GooglePlusIcon = generateShareIcon('google');
-const LinkedinIcon = generateShareIcon('linkedin');
-const PinterestIcon = generateShareIcon('pinterest');
-const VKIcon = generateShareIcon('vk');
-const OKIcon = generateShareIcon('ok');
+const Loading = () => (
+  <div/>
+)
 
-const {
-  FacebookShareButton,
-  GooglePlusShareButton,
-  LinkedinShareButton,
-  TwitterShareButton,
-  TelegramShareButton,
-  WhatsappShareButton,
-  PinterestShareButton,
-  VKShareButton,
-  OKShareButton
-} = ShareButtons;
+const SocialShareLoadable = Loadable({
+  loader: () => import('/imports/ui/components/socialshare.jsx'),
+  loading: Loading
+});
 
-const {
-  FacebookShareCount,
-  GooglePlusShareCount,
-  LinkedinShareCount,
-  PinterestShareCount,
-  VKShareCount,
-  OKShareCount
-} = ShareCounts;
 
 const styles = {
   box: {
@@ -192,23 +165,7 @@ export class ProfilePledges extends Component {
 
 
                       <div style={{display: 'flex', justifyContent: 'center', marginLeft: '-34px'}}>
-
-                          <FacebookShareButton
-                            style={{cursor: 'pointer'}}
-                            children = {<div>
-                              <FacebookIcon size={36} round={true}/>
-                          </div>}
-                            url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                            title={pledge.title} description={"I just agreed to " + pledge.title + " for " + pledge.duration + " - as long as " + (pledge.target-pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
-                            picture = {pledge.coverPhoto ? pledge.coverPhoto : 'https://www.allforone.io/splash.jpg'}
-                            />
-                          <div style={{width: '10px'}}></div>
-                          <TwitterShareButton
-                            style={{cursor: 'pointer'}}
-                            children = {<TwitterIcon size={36} round={true}/>}
-                            url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                            title={"If another " + (pledge.target-pledge.pledgedUsers.length).toString() + ' people join me, I am ' + pledge.title + ' for ' + pledge.duration }
-                            />
+                          <SocialShareLoadable pledge={pledge}/>
                         </div>
                     </div>
 
@@ -265,22 +222,7 @@ export class ProfilePledges extends Component {
 
 
                         <div style={{display: 'flex', justifyContent: 'center', marginLeft: '-34px'}}>
-                          <FacebookShareButton
-                            style={{cursor: 'pointer'}}
-                            children = {<div>
-                              <FacebookIcon size={36} round={true}/>
-                          </div>}
-                            url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                            title={pledge.title} description={"I just agreed to " + pledge.title + " for " + pledge.duration + " - as long as " + (pledge.target-pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
-                            picture = {pledge.coverPhoto ? pledge.coverPhoto : 'https://www.allforone.io/splash.jpg'}
-                            />
-                          <div style={{width: '10px'}}></div>
-                          <TwitterShareButton
-                            style={{cursor: 'pointer'}}
-                            children = {<TwitterIcon size={36} round={true}/>}
-                            url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                            title={"If another " + (pledge.target-pledge.pledgedUsers.length).toString() + ' people join me, I am ' + pledge.title + ' for ' + pledge.duration }
-                            />
+                          <SocialShareLoadable pledge={pledge}/>
                         </div>
                       </div>
 

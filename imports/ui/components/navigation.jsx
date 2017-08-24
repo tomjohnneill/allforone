@@ -8,7 +8,6 @@ import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import AppBar from 'material-ui/AppBar';
 import RaisedButton from 'material-ui/RaisedButton';
 import Popover from 'material-ui/Popover';
-import ReactDOM from 'react-dom';
 import ArrowDropRight from 'material-ui/svg-icons/navigation-arrow-drop-right';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
@@ -45,6 +44,7 @@ const style = {
   appBar: {
     margin: '0px',
     boxShadow: null,
+    paddingLeft: '16px'
   },
   otherAnchor :{
     float: 'right',
@@ -174,7 +174,7 @@ export default class Navigation extends React.Component {
 
   handleAboutClick = (e) => {
     e.preventDefault()
-    browserHistory.push('/about')
+    browserHistory.push('/messages')
   }
 
   handleSignOut = (e) => {
@@ -225,8 +225,8 @@ export default class Navigation extends React.Component {
           style={style.appBar}
           iconElementRight={
                             <div>
-                            <IconButton tooltip='About' onTouchTap={this.handleAboutClick}>
-                              <InfoOutline color={'white'}/>
+                            <IconButton tooltip='Messaging' onTouchTap={this.handleAboutClick}>
+                              <MessageIcon color={'white'}/>
                             </IconButton>
                             <IconButton tooltip='Settings' onTouchTap={this.handleSettingsClick}>
                             <Settings color='white'/>
