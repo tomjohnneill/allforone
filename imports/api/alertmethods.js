@@ -390,7 +390,7 @@ Meteor.methods({
   }
 })
 
-function callSendAPI(messageData) {
+export function callSendAPI(messageData) {
   request({
     uri: 'https://graph.facebook.com/v2.9/me/messages',
     qs: { access_token: 'EAAbWYZCz3y50BADfOyHdLTYdgqpZCVYZAslhisDAoegVSR2ufVFreyZA4wkbZA2XseiVZC9OVlFJIiHaYe2AZADJggKsexQpLr1nEjFY8jG91mbHpPA1zbFdUeTtXKD2HxXZCUz1qeGZB1Q8dflj0yZCYfBDYsns76WZC94fUUIZBkktZBwZDZD' },

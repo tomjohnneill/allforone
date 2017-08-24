@@ -1,7 +1,7 @@
 import { Meteor } from 'meteor/meteor';
 import { Mongo } from 'meteor/mongo';
 import { check } from 'meteor/check';
-import { Pledges } from '/imports/api/pledges.js';
+import { Pledges, Details, Responses, GroupCriteria } from '/imports/api/pledges.js';
 import { PledgeVisits } from '/imports/api/pledges.js';
 import { ValidatedMethod } from 'meteor/mdg:validated-method';
 import {SimpleSchema} from 'meteor/aldeed:simple-schema';
@@ -104,10 +104,102 @@ Meteor.methods({
   }
 })
 
+Meteor.methods({
+  saveGroupCriteria: function(details, locationChoice, geojson, filters, pledgeId, name) {
+    console.log(details)
+    console.log(locationChoice)
+    console.log(geojson)
+
+    GroupCriteria.upsert({name: name, pledgeId: pledgeId}, {$set: {
+      details: details,
+      locationChoice: locationChoice,
+      geojson: geojson,
+      pledgeId, pledgeId
+    }})
+  }
+})
+
+Meteor.methods({
+  addUsersToPledgeGroup: function(userIds, groupName, pledgeId) {
+    var roleName = groupName
+    Roles.addUsersToRoles(userIds, roleName, pledgeId)
+  }
+})
+
+Meteor.methods({
+  saveQuestions: function(pledgeId, data) {
+    var idList = []
+    for (var j in data) {
+      idList.push(data[j].id ? data[j].id : data[j]._id)
+    }
+
+    console.log(idList)
+
+    Details.remove({pledgeId: pledgeId, _id: {$nin: idList}})
+
+    for (var i in data) {
+      var id = data[i].id ? data[i].id : data[i]._id
+      if (id.length > 10) {
+        Details.update({_id: id}, {$set:
+          {pledgeId: pledgeId,
+          type: data[i].type,
+          question: data[i].question,
+          options: data[i].options}
+        }
+        )
+      } else {
+      Details.insert({
+        pledgeId: pledgeId,
+        type: data[i].type,
+        question: data[i].question,
+        options: data[i].options
+      })
+    }
+    }
+  }
+})
+
+Meteor.methods({
+  updateDetail: function(response) {
+    Details.update({_id: response.id}, {$pull: {
+      members: {userId: this.userId}
+    }})
+
+    Details.update({
+        _id: response.id
+      }, {$addToSet: {
+        members: {userId: this.userId, response: response.value}
+      }})
+
+    Responses.upsert({detailId: response.id, userId: this.userId}, {$set:
+    {
+      detailId: response.id,
+      userId: this.userId,
+      value: response.value
+    }})
+  }
+})
+
+Meteor.methods({
+  addUserUpload: function(url, pledgeId) {
+    Pledges.update({_id: pledgeId}, {$addToSet: {
+      uploads: {userId: this.userId, upload: url}
+    }})
+  }
+})
+
 if (Meteor.isServer) {
   Meteor.publish("editor", function (_id) {
     return Pledges.find({_id: _id})
   });
+
+  Meteor.publish("details", function (pledgeId) {
+    return Details.find({pledgeId: pledgeId})
+  });
+
+  Meteor.publish("random", function() {
+    return Details.find({hi: "hi"})
+  })
 
   Meteor.publish("pledgeVisits", function () {
     return PledgeVisits.find()
@@ -118,9 +210,16 @@ if (Meteor.isServer) {
   })
 
   Meteor.publish("pledgeList", function () {
-    return Pledges.find({}
+    return Pledges.find({title: {$ne: 'Untitled Pledge'}}
     , {fields: {_id : 1, title: 1, slug : 1, creatorPicture : 1, target : 1, pledgedUsers : 1
       , pledgeCount: 1, coverPhoto: 1, creatorId: 1, duration: 1, deadline: 1}}
+    )
+  })
+
+  Meteor.publish("approvedPledges", function () {
+    return Pledges.find({approved: true}
+    , {fields: {_id : 1, title: 1, slug : 1, creatorPicture : 1, target : 1, pledgedUsers : 1
+      , pledgeCount: 1, coverPhoto: 1, creatorId: 1, duration: 1, deadline: 1, approved: 1}}
     )
   })
 
@@ -136,6 +235,13 @@ if (Meteor.isServer) {
       , {fields: {_id : 1, title: 1, slug : 1, creatorPicture : 1, target : 1, pledgedUsers : 1, pledgeCount: 1, coverPhoto: 1
       , duration : 1, creatorId: 1, deadline: 1, creator: 1}}
       )
+  })
+
+  Meteor.publish("pledgeUsers", function(pledgeId) {
+    var pledge = Pledges.findOne({_id: pledgeId})
+    return Meteor.users.find({pledgedUsers: {$in : pledge.pledgedUsers}}, {
+      fields: {_id: 1, OneSignalUserId: 1, userMessengerId: 1, profile: 1, geo: 1, roles: 1}
+    })
   })
 
   Meteor.publish("myCreatedPledges", function() {
@@ -155,6 +261,90 @@ Meteor.methods({
     return Pledges.insert( {} );
   }
 });
+
+Meteor.methods({
+  approvePledges: function(pledgeArray) {
+    if (Roles.userIsInRole(this.userId, 'admin')) {
+      for (var i in pledgeArray) {
+        Pledges.update({_id: pledgeArray[i]}, {$set: {
+          approved: true
+        }})
+      }
+    }
+  }
+})
+
+Meteor.methods({
+  findMatching: function(json, locationChoice, pledgeId) {
+    var geoJSON = json.features[0].geometry
+
+    if (locationChoice !== 'user') {
+      var details = Responses.find( { 'value.location': { $geoWithin: { $geometry: geoJSON } } }, {
+        fields: {userId: 1}
+      } ).fetch()
+      return (details)
+    } else {
+      var userIds = Meteor.users.find({geo: {$geoWithin : {$geometry : geoJSON}},
+        committedPledges: pledgeId}).fetch()
+      return (userIds)
+    }
+  }
+})
+
+function findArray(id, value) {
+  return (Responses.find({
+    detailId: id,
+    value: value
+  }, {fields: {userId: 1}}).fetch()
+  )
+}
+
+Meteor.methods({
+  findRelevantUsers: function(idList, data) {
+    var arrays = []
+    console.log(data)
+    console.log('Id list: ' + idList)
+    for (var i = 0; i < idList.length; i++) {
+      arrays[i] = findArray(idList[i], data[idList[i]].choice)
+      console.log(arrays)
+
+    }
+    if (arrays.length > 1) {
+      for (var j = 0; j<arrays.length; j++) {
+        var tempArray = []
+        for (var k= 0; k <arrays[j].length; k++) {
+          tempArray.push(arrays[j][k].userId)
+        }
+        console.log(tempArray)
+        arrays[j] = tempArray
+        if (j > 1) {
+          arrays[i].filter(function(n) {
+            return arrays[i-1].indexOf(n) !== -1;
+          });
+        }
+      }
+      console.log(arrays)
+    } else {
+      var tempArray = []
+      for (var k= 0; k <arrays[0].length; k++) {
+        tempArray.push(arrays[0][k].userId)
+      }
+      arrays[0] = tempArray
+    }
+    return (
+      arrays[arrays.length - 1]
+    )
+  }
+})
+
+
+Meteor.methods({
+  addNameToPledgeRoles : function(name, pledgeId) {
+    Pledges.update({_id: pledgeId}, {$addToSet: {
+      pledgeRoles: name
+    }})
+  }
+})
 
 Meteor.methods({
   sendFriendPledgeSignalNotification: function(id) {
@@ -323,19 +513,45 @@ let PledgeSchema = new SimpleSchema({
     label: "The content of this pledge.",
     optional: true
   },
-  "what": {
-    type: String,
-    label: "The what of this pledge.",
+  "approved": {
+    type: Boolean,
+    label: "Is this pledge on the front page?",
+    autoValue() {
+        if (this.isInsert) {
+        return false
+      }
+    }
+  },
+  "stripe": {
+    type: Object,
+    blackbox: true,
+    optional: true,
+    label: "Details for stripe account"
+  },
+  "pledgeRoles": {
+    type: [String],
+    label: "User group names for this pledge",
     optional: true
   },
-  "why": {
+  "uploads": {
+    type: [Object],
+    blackbox: true,
+    optional: true,
+    label: 'User photo uploads'
+  },
+  "description": {
     type: String,
-    label: "The why of this pledge.",
+    label: "Pledge description",
     optional: true
   },
-  "how": {
+  "facebookURL" :{
     type: String,
-    label: "The how of this pledge.",
+    label: "Facebook Page URL",
+    optional: true
+  },
+  "twitterURL": {
+    type: String,
+    label: "Twitter account URL",
     optional: true
   },
   "tags" : {
@@ -414,6 +630,12 @@ let PledgeSchema = new SimpleSchema({
   "completedEmailSent" : {
     type: Boolean,
     label: "Has an email been sent when completed?",
+    optional: true
+  },
+  "details": {
+    type: Object,
+    label: "Extra details needed for the pledge",
+    blackbox: true,
     optional: true
   }
 });

@@ -35,12 +35,78 @@ if (Meteor.isServer) {
     })
   })
 
+  Meteor.publish('pledgeRoles', function (){
+  return Meteor.roles.find({})
+})
+
   Meteor.publish("publicUser", function(_id) {
     return Meteor.users.find({_id: _id}, {
       fields: {_id: 1, 'profile': 1, 'email.address': 1, score:1, 'services.facebook.id' : 1, 'createdAt': 1, 'friends': 1
     }
     })
   })
+
+  Meteor.publish('messageTypeCounts', function(pledgeId, groupName) {
+    var lookupString = 'roles.' + pledgeId
+    Counts.publish(this, 'oneSignalCount', Meteor.users.find({
+      committedPledges: {$elemMatch: {_id: pledgeId}}
+      , [lookupString] : groupName
+      , OneSignalUserId : {$exists : true}
+      }))
+
+    Counts.publish(this, 'messengerCount', Meteor.users.find({
+      committedPledges: {$elemMatch: {_id: pledgeId}}
+      , [lookupString] : groupName
+      , userMessengerId : {$exists : true}
+      }))
+
+    Counts.publish(this, 'emailCount', Meteor.users.find({
+      committedPledges: {$elemMatch: {_id: pledgeId}}
+      , [lookupString] : groupName
+      , 'profile.email' : {$exists : true}
+      }))
+
+    Counts.publish(this, 'smsCount', Meteor.users.find({
+      committedPledges: {$elemMatch: {_id: pledgeId}}
+      , [lookupString] : groupName
+      , 'profile.phone' : {$exists : true}
+      }))
+
+      Counts.publish(this, 'allforoneCount', Meteor.users.find({
+        committedPledges: {$elemMatch: {_id: pledgeId}}
+        , [lookupString] : groupName
+        }))
+
+  })
+
+  Meteor.publish('everyoneMessageTypeCounts', function(pledgeId) {
+    var lookupString = 'roles.' + pledgeId
+    Counts.publish(this, 'allOneSignalCount', Meteor.users.find({
+      committedPledges: {$elemMatch: {_id: pledgeId}}
+      , OneSignalUserId : {$exists : true}
+      }))
+
+    Counts.publish(this, 'allMessengerCount', Meteor.users.find({
+      committedPledges: {$elemMatch: {_id: pledgeId}}
+      , userMessengerId : {$exists : true}
+      }))
+
+    Counts.publish(this, 'allEmailCount', Meteor.users.find({
+      committedPledges: {$elemMatch: {_id: pledgeId}}
+      , 'profile.email' : {$exists : true}
+      }))
+
+    Counts.publish(this, 'allSmsCount', Meteor.users.find({
+      committedPledges: {$elemMatch: {_id: pledgeId}}
+      , 'profile.phone' : {$exists : true}
+      }))
+
+      Counts.publish(this, 'allAllForOneCount', Meteor.users.find({
+        committedPledges: {$elemMatch: {_id: pledgeId}}
+        }))
+  })
+
+
 
   process.env.MAIL_URL=Meteor.settings.public.MAIL_URL;
 }
@@ -82,7 +148,7 @@ Meteor.methods({
 Meteor.methods({
   changeUserRole: function(list, role) {
     if (this.userId === 'msfgNtu67nrevfX6c' || this.userId === 'p6ZQiT9b7iWKcyL9D' || Roles.userIsInRole(this.userId, 'admin')) {
-      Roles.addUsersToRoles(list, role)
+      Roles.addUsersToRoles(list, role, Roles.GLOBAL_GROUP)
     }
   }
 })
@@ -220,7 +286,7 @@ Meteor.methods({
     if (user.friends !== undefined) {
       friendCount = user.friends.length * 5
     }
-    var pledgeCount = user.committedPledges.length
+    var pledgeCount = user.committedPledges ? user.committedPledges.length : 0
     console.log('Friend count = ' + friendCount + '  Pledge Count = ' + pledgeCount)
     var pledgeTotalValue = 0
     for (var pledge in user.committedPledges) {
@@ -234,12 +300,7 @@ Meteor.methods({
   }
     }
     var threadCommentTotal = 0
-    var threads = Threads.find({}).fetch()
-    for  (var each in threads) {
-      if (threads[each].creatorId === user._id && threads[each].comments !== undefined) {
-        threadCommentTotal = threadCommentTotal + threads[each].comments.length
-      }
-    }
+
 
     var score = friendCount + pledgeCount + pledgeTotalValue/2 + threadCommentTotal + 5
     var scoreObject = {total: score, friend: friendCount
