@@ -1,5 +1,4 @@
 import React , {PropTypes} from 'react';
-import ReactDOM from 'react-dom';
 import Subheader from 'material-ui/Subheader'
 
 const styles={
@@ -11,7 +10,8 @@ const styles={
   }
 }
 
-export const Terms = () => (
+export default class Terms extends React.Component {
+  render () {
   <div style={{paddingLeft  : '16px'}}>
     <Subheader style={styles.subheader}>
       Terms and Conditions
@@ -118,4 +118,4 @@ If you do something that gets us sued, or break any of the promises you make in 
 
     </div>
   </div>
-)
+}}

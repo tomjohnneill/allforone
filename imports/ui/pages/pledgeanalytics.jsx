@@ -1,5 +1,4 @@
 import React , {PropTypes} from 'react';
-import ReactDOM from 'react-dom';
 import { createContainer } from 'meteor/react-meteor-data';
 import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
@@ -8,7 +7,6 @@ import LinearProgress from 'material-ui/LinearProgress';
 import Divider from 'material-ui/Divider';
 import {Tabs, Tab} from 'material-ui/Tabs';
 import { Session } from 'meteor/session';
-import FacebookProvider, { Comments } from 'react-facebook';
 import Dialog from 'material-ui/Dialog';
 import {Link, browserHistory} from 'react-router';
 import {PledgeVisits, Pledges} from '/imports/api/pledges.js';

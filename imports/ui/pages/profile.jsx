@@ -1,5 +1,4 @@
 import React, { Component, PropTypes } from 'react';
-import ReactDOM from 'react-dom';
 import { Meteor } from 'meteor/meteor';
 import { createContainer } from 'meteor/react-meteor-data';
 import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
@@ -12,11 +11,6 @@ import {List, ListItem} from 'material-ui/List';
 import Subheader from 'material-ui/Subheader';
 import Avatar from 'material-ui/Avatar'
 import { Session } from 'meteor/session';
-import {
-  ShareButtons,
-  ShareCounts,
-  generateShareIcon
-} from 'react-share';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import {Link, browserHistory} from 'react-router';
@@ -26,6 +20,7 @@ import ProfilePledges from '/imports/ui/components/profilepledges.jsx';
 import SocialLeaderboard from '/imports/ui/components/socialleaderboard.jsx';
 import Badges from '/imports/ui/components/badges.jsx';
 import SuggestionList from '/imports/ui/components/suggestionlist.jsx';
+import ReviewList from '/imports/ui/components/reviews.jsx';
 import ExpandMore from 'material-ui/svg-icons/navigation/expand-more';
 import DocumentTitle from 'react-document-title';
 import IconButton from 'material-ui/IconButton';
@@ -39,37 +34,16 @@ import InfoIcon from '/imports/ui/components/infoicon.jsx';
 import TextField from 'material-ui/TextField'
 import Email from 'material-ui/svg-icons/communication/email';
 import SMS from 'material-ui/svg-icons/communication/textsms';
+import Loadable from 'react-loadable';
 
-const FacebookIcon = generateShareIcon('facebook');
-const TwitterIcon = generateShareIcon('twitter');
-const TelegramIcon = generateShareIcon('telegram');
-const WhatsappIcon = generateShareIcon('whatsapp');
-const GooglePlusIcon = generateShareIcon('google');
-const LinkedinIcon = generateShareIcon('linkedin');
-const PinterestIcon = generateShareIcon('pinterest');
-const VKIcon = generateShareIcon('vk');
-const OKIcon = generateShareIcon('ok');
+const Loading = () => (
+  <div/>
+)
 
-const {
-  FacebookShareButton,
-  GooglePlusShareButton,
-  LinkedinShareButton,
-  TwitterShareButton,
-  TelegramShareButton,
-  WhatsappShareButton,
-  PinterestShareButton,
-  VKShareButton,
-  OKShareButton
-} = ShareButtons;
-
-const {
-  FacebookShareCount,
-  GooglePlusShareCount,
-  LinkedinShareCount,
-  PinterestShareCount,
-  VKShareCount,
-  OKShareCount
-} = ShareCounts;
+const ProfilePledgesLoadable = Loadable({
+  loader: () => import('/imports/ui/components/profilepledges.jsx'),
+  loading: Loading
+});
 
 const styles = {
   box: {
@@ -511,8 +485,13 @@ export class Profile extends Component {
             </Card>
 
             <Card style={{marginTop: '20px'}}>
-                <ProfilePledges/>
+                <ReviewList userId={Meteor.userId()}/>
                   </Card>
+
+          {/*  <Card style={{marginTop: '20px'}}>
+                <ProfilePledgesLoadable/>
+                  </Card>
+                  */}
 
                 <Card style={{marginTop: '20px'}}>
                     <Subheader>Suggestions</Subheader>
@@ -525,9 +504,9 @@ export class Profile extends Component {
                                     <Subheader>Your friends</Subheader>
                   <div style={{display: 'flex',  backgroundColor: grey100
                     , paddingTop: '20px', paddingLeft: '20px', paddingRight: '20px', paddingBottom: '40px', fontSize: '14px', width: '100%', boxSizing: 'border-box', overflowX: 'scroll'}}>
-                    {this.props.thisUser.friends ?
+                    {Meteor.user().friends ?
 
-                      this.props.thisUser.friends.map((friend) => (
+                      Meteor.user().friends.map((friend) => (
 
 
                         <IconButton tooltip={friend.first_name + ' ' + friend.last_name}
@@ -561,11 +540,15 @@ export class Profile extends Component {
                       </Tab>
                       <Tab label='Your score' buttonStyle={{backgroundColor: '#006699',height: '36px'}}>
                         <div style={{backgroundColor: 'white', padding: '10px'}}>
+                          {this.props.thisUser.score ?
+                            <div>
                         Signed up: 5 points<br/>
                       Number of friends: {this.props.thisUser.score.friend} points<br/>
                     Pledges signed up to: {this.props.thisUser.score.pledge} points<br/>
                   Impact of your pledges: {this.props.thisUser.score.pledgeImpact} points<br/>
                 Popular threads: {this.props.thisUser.score.thread} points<br/>
+              </div>
+              : null}
 
 
                       </div>
@@ -604,47 +587,7 @@ export class Profile extends Component {
                 This will only ever post when a pledge you have joined has reached its target.
               </div>
             </Dialog>
-            <Dialog
-              title="Maybe you could share your pledge?"
-              modal={true}
-              open={this.props.justAddedPledge !== '' && this.props.justAddedPledge
-                !== undefined && this.state.pledgeAdded !== false}
-              onRequestClose={this.handleClose.bind(this)}
-              actions={
-                this.props.justAddedPledge ?
-                [
 
-                <div style={{display: 'flex', justifyContent: 'center'}}>
-                <FacebookShareButton
-                  style={{cursor: 'pointer'}}
-                  children = {<div>
-                    <FacebookIcon size={36} round={true}/>
-
-
-                  </div>}
-                  url = {'https://www.allforone.io/pages/pledges/' + this.props.justAddedPledge + '/' + this.props.justAddedPledgeId}
-                  title={justAddedPledgeTitle} description={"I just agreed to "+ justAddedPledgeTitle.toLowerCase() +  " for " + justAddedPledgeDuration.toLowerCase() + " - as long as " + (justAddedPledgeTarget-justAddedPledgeCollection.pledgeCount).toString() + " more people do the same. Care to join me?"}
-                  picture = {justAddedPledgePicture ? justAddedPledgePicture : 'https://www.allforone.io/images/splash.jpg'}
-                  />
-                <div style={{width: '10px'}}></div>
-                <TwitterShareButton
-                  style={{cursor: 'pointer'}}
-                  children = {<TwitterIcon size={36} round={true}/>}
-                  url = {'https://www.allforone.io/pages/pledges/' + this.props.justAddedPledge + '/' + this.props.justAddedPledgeId}
-                  title={"If another " + (justAddedPledgeTarget-justAddedPledgeCollection.pledgeCount).toString() + ' people join me, I pledge to' + justAddedPledgeTitle.toLowerCase() +  " for " + justAddedPledgeDuration.toLowerCase() }
-
-                  />
-              </div>,
-                  <FlatButton
-                  label="No Thanks"
-                  primary={true}
-                  onTouchTap={this.handleClose.bind(this)}
-                />
-            ] : null}
-              >
-              This pledge will only happen if it reaches its target.
-              Every share counts.
-            </Dialog>
             <Dialog
               modal={true}
               open={this.state.messengerPopup}

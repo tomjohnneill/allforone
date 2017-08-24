@@ -1,5 +1,4 @@
 import React , {PropTypes} from 'react';
-import ReactDOM from 'react-dom';
 import { createContainer } from 'meteor/react-meteor-data';
 import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
@@ -8,7 +7,6 @@ import LinearProgress from 'material-ui/LinearProgress';
 import Divider from 'material-ui/Divider';
 import {Tabs, Tab} from 'material-ui/Tabs';
 import { Session } from 'meteor/session';
-import FacebookProvider, { Comments } from 'react-facebook';
 import Dialog from 'material-ui/Dialog';
 import {Link, browserHistory} from 'react-router';
 import {Pledges} from '/imports/api/pledges.js';
@@ -143,10 +141,11 @@ PledgeList.propTypes = {
 }
 
 export default createContainer(() => {
-  const subscriptionHandler = Meteor.subscribe("pledgeList");
+  const subscriptionHandler = Meteor.subscribe("approvedPledges");
 
   return {
-    pledges: Pledges.find({title: {$ne: 'Untitled Pledge'}, deadline: { $gte : new Date()}}, {sort: {pledgeCount: -1}}).fetch(),
+    pledges: Pledges.find({title: {$ne: 'Untitled Pledge'}, approved: true,
+          deadline: { $gte : new Date()}}, {sort: {pledgeCount: -1}}).fetch(),
     loading: !subscriptionHandler.ready()
   };
 }, PledgeList);

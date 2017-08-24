@@ -1,5 +1,4 @@
 import React , {PropTypes} from 'react';
-import ReactDOM from 'react-dom';
 import Subheader from 'material-ui/Subheader'
 
 const styles={
@@ -11,7 +10,8 @@ const styles={
   }
 }
 
-export const PrivacyPolicy = () => (
+export default class PrivacyPolicy extends React.Component {
+  render () {
   <div style={{paddingLeft  : '16px', paddingRight: '16px', fontSize: ''}}>
     <Subheader style={styles.subheader}>Privacy policy</Subheader>
 <p>This privacy policy applies between you, the User of this Website and All For One, the owner and provider of this Website. All For One takes the privacy of your information very seriously. This privacy policy applies to our use of any and all Data collected by us or provided by you in relation to your use of the Website.  <b>Please read this privacy policy carefully</b>.
@@ -315,4 +315,4 @@ export const PrivacyPolicy = () => (
 
 </div>
 
-)
+}}

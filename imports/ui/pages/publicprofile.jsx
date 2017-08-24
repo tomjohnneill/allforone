@@ -1,5 +1,4 @@
 import React, { Component, PropTypes } from 'react';
-import ReactDOM from 'react-dom';
 import { Meteor } from 'meteor/meteor';
 import { createContainer } from 'meteor/react-meteor-data';
 import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
@@ -12,11 +11,6 @@ import {List, ListItem} from 'material-ui/List';
 import Subheader from 'material-ui/Subheader';
 import Avatar from 'material-ui/Avatar'
 import { Session } from 'meteor/session';
-import {
-  ShareButtons,
-  ShareCounts,
-  generateShareIcon
-} from 'react-share';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import {Link, browserHistory} from 'react-router';
@@ -24,7 +18,6 @@ import {Pledges} from '/imports/api/pledges.js';
 import {Suggestions} from '/imports/api/suggestions.js';
 import Leaderboard from '/imports/ui/components/leaderboard.jsx';
 import SocialLeaderboard from '/imports/ui/components/socialleaderboard.jsx';
-import Streaks from '/imports/ui/components/streaks.jsx';
 import Badges from '/imports/ui/components/badges.jsx';
 import SuggestionList from '/imports/ui/components/suggestionlist.jsx';
 import ExpandMore from 'material-ui/svg-icons/navigation/expand-more';
@@ -37,38 +30,7 @@ import CircularProgress from 'material-ui/CircularProgress';
 import { Accounts } from 'meteor/accounts-base';
 import Publish from 'material-ui/svg-icons/editor/publish';
 import InfoIcon from '/imports/ui/components/infoicon.jsx';
-
-
-const FacebookIcon = generateShareIcon('facebook');
-const TwitterIcon = generateShareIcon('twitter');
-const TelegramIcon = generateShareIcon('telegram');
-const WhatsappIcon = generateShareIcon('whatsapp');
-const GooglePlusIcon = generateShareIcon('google');
-const LinkedinIcon = generateShareIcon('linkedin');
-const PinterestIcon = generateShareIcon('pinterest');
-const VKIcon = generateShareIcon('vk');
-const OKIcon = generateShareIcon('ok');
-
-const {
-  FacebookShareButton,
-  GooglePlusShareButton,
-  LinkedinShareButton,
-  TwitterShareButton,
-  TelegramShareButton,
-  WhatsappShareButton,
-  PinterestShareButton,
-  VKShareButton,
-  OKShareButton
-} = ShareButtons;
-
-const {
-  FacebookShareCount,
-  GooglePlusShareCount,
-  LinkedinShareCount,
-  PinterestShareCount,
-  VKShareCount,
-  OKShareCount
-} = ShareCounts;
+import ReviewList from '/imports/ui/components/reviews.jsx';
 
 const styles = {
   box: {
@@ -196,6 +158,10 @@ export class PublicProfile extends Component {
             </Card>
 
             <Card style={{marginTop: '20px'}}>
+                <ReviewList userId={this.props.params.userId}/>
+                  </Card>
+
+            <Card style={{marginTop: '20px'}}>
               <Subheader>Pledges</Subheader>
                 <List>
                   <div style={{display: 'flex'}}>
@@ -294,28 +260,8 @@ export class PublicProfile extends Component {
                               </div>
 
                             </div>
-                              <Subheader style={{marginLeft: '-34px', marginTop: '10px'}}>Share your pledge</Subheader>
+                          </div>
 
-
-                                <div style={{display: 'flex', justifyContent: 'center', marginLeft: '-34px'}}>
-                                  <FacebookShareButton
-                                    style={{cursor: 'pointer'}}
-                                    children = {<div>
-                                      <FacebookIcon size={36} round={true}/>
-                                  </div>}
-                                    url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                                    title={pledge.title} description={"I just agreed to " + pledge.title + " for " + pledge.duration + " - as long as " + (pledge.target-pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
-                                    picture = {pledge.coverPhoto ? pledge.coverPhoto : 'https://www.allforone.io/splash.jpg'}
-                                    />
-                                  <div style={{width: '10px'}}></div>
-                                  <TwitterShareButton
-                                    style={{cursor: 'pointer'}}
-                                    children = {<TwitterIcon size={36} round={true}/>}
-                                    url = {'https://www.allforone.io/pages/pledges/' + pledge.slug + '/' + pledge._id}
-                                    title={"If another " + (pledge.target-pledge.pledgedUsers.length).toString() + ' people join me, I am ' + pledge.title + ' for ' + pledge.duration }
-                                    />
-                                </div>
-                              </div>
 
 
                           }/>

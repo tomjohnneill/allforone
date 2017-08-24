@@ -11,7 +11,7 @@ import {Tabs, Tab} from 'material-ui/Tabs';
 import { Session } from 'meteor/session';
 import Dialog from 'material-ui/Dialog';
 import {Link, browserHistory} from 'react-router';
-import {Pledges} from '/imports/api/pledges.js';
+import {Messages} from '/imports/api/messages.js';
 import ArrowBack from 'material-ui/svg-icons/navigation/arrow-back';
 import IconButton from 'material-ui/IconButton';
 import Subheader from 'material-ui/Subheader';
@@ -33,10 +33,11 @@ const styles = {
 }
 
 
-export class EmailAdmin extends React.Component {
+export class MessageAdmin extends React.Component {
   constructor(props) {
     super(props);
     this.state={pledges: []}
+    console.log(this.props)
   }
 
   handleAddPledge(id, e, input)  {
@@ -49,13 +50,13 @@ export class EmailAdmin extends React.Component {
     this.setState({pledges: pledges})
   }
 
-  handleSendEmail = (e) => {
+  handleApproveMessages = (e) => {
     e.preventDefault()
-    Meteor.call('sendMorePledgesEmail', this.state.pledges, (error, response) => {
+    Meteor.call('approveMessage', this.state.pledges, (error, response) => {
       if (error) {
         Bert.alert(error.reason, 'danger');
       } else {
-        Bert.alert('Email Queued', 'success');
+        Bert.alert('Messages approved', 'success');
       }
     })
   }
@@ -70,38 +71,32 @@ export class EmailAdmin extends React.Component {
         {this.props.loading ? <div style={{height: '80vh', width: '100%',
                                               display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
         <CircularProgress/>
+        Hello there
         </div> :
-          <DocumentTitle title={this.props.pledge.title}>
         <div style={styles.box}>
           <List>
-            <Subheader>Pledges</Subheader>
-            {this.props.pledges.map((pledge) => (
-              <ListItem primaryText={pledge.title} rightToggle={<Toggle onToggle={this.handleAddPledge.bind(this, pledge._id)}/>}/>
+            <Subheader>Messages</Subheader>
+            {this.props.messages.map((message) => (
+              <ListItem primaryText={message.text} rightToggle={<Toggle onToggle={this.handleAddPledge.bind(this, message._id)}/>}/>
             ))}
           </List>
           <div style={{height: '40px'}}/>
-          <FlatButton label='Send Email' onTouchTap={this.handleSendEmail}/>
-      </div>
-    </DocumentTitle>}
+          <FlatButton label='Send Email' onTouchTap={this.handleApproveMessages}/>
+      </div>}
   </div>
     )
   }
 }
 
-EmailAdmin.propTypes = {
-  pledge: PropTypes.object.isRequired,
+MessageAdmin.propTypes = {
   loading: PropTypes.bool.isRequired,
 }
 
 export default createContainer(() => {
-  const userHandler = Meteor.subscribe('userData');
-  const userFriends = Meteor.subscribe('userFriends');
-  const subscriptionHandler = Meteor.subscribe("pledgeList");
+  const subscriptionHandler = Meteor.subscribe("newBroadcastMessages");
 
   return {
-    loading: !subscriptionHandler.ready() || !userHandler.ready(),
-    pledge: Pledges.find().fetch(),
-    user: Meteor.users.find({}),
-    pledges: Pledges.find({title: {$ne: 'Untitled Pledge'}, deadline: { $gte : new Date()}}, {sort: {pledgeCount: -1}}).fetch(),
+    loading: !subscriptionHandler.ready() ,
+    messages : Messages.find({}).fetch()
   }
-}, EmailAdmin)
+}, MessageAdmin)

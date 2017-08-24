@@ -1,5 +1,4 @@
 import React, { Component, PropTypes } from 'react';
-import ReactDOM from 'react-dom';
 import { Meteor } from 'meteor/meteor';
 import { createContainer } from 'meteor/react-meteor-data';
 import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
@@ -12,19 +11,12 @@ import {List, ListItem} from 'material-ui/List';
 import Subheader from 'material-ui/Subheader';
 import Avatar from 'material-ui/Avatar'
 import { Session } from 'meteor/session';
-import {
-  ShareButtons,
-  ShareCounts,
-  generateShareIcon
-} from 'react-share';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import {Link, browserHistory} from 'react-router';
 import {Pledges} from '/imports/api/pledges.js';
 import Leaderboard from '/imports/ui/components/leaderboard.jsx';
 import SocialLeaderboard from '/imports/ui/components/socialleaderboard.jsx';
-import Streaks from '/imports/ui/components/streaks.jsx';
-import Badges from '/imports/ui/components/badges.jsx'
 import ExpandMore from 'material-ui/svg-icons/navigation/expand-more';
 import DocumentTitle from 'react-document-title';
 import IconButton from 'material-ui/IconButton';
@@ -35,38 +27,6 @@ import CircularProgress from 'material-ui/CircularProgress';
 import { Accounts } from 'meteor/accounts-base';
 import Publish from 'material-ui/svg-icons/editor/publish';
 import InfoIcon from '/imports/ui/components/infoicon.jsx';
-
-
-const FacebookIcon = generateShareIcon('facebook');
-const TwitterIcon = generateShareIcon('twitter');
-const TelegramIcon = generateShareIcon('telegram');
-const WhatsappIcon = generateShareIcon('whatsapp');
-const GooglePlusIcon = generateShareIcon('google');
-const LinkedinIcon = generateShareIcon('linkedin');
-const PinterestIcon = generateShareIcon('pinterest');
-const VKIcon = generateShareIcon('vk');
-const OKIcon = generateShareIcon('ok');
-
-const {
-  FacebookShareButton,
-  GooglePlusShareButton,
-  LinkedinShareButton,
-  TwitterShareButton,
-  TelegramShareButton,
-  WhatsappShareButton,
-  PinterestShareButton,
-  VKShareButton,
-  OKShareButton
-} = ShareButtons;
-
-const {
-  FacebookShareCount,
-  GooglePlusShareCount,
-  LinkedinShareCount,
-  PinterestShareCount,
-  VKShareCount,
-  OKShareCount
-} = ShareCounts;
 
 const styles = {
   box: {

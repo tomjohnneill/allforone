@@ -1,5 +1,4 @@
 import React , {PropTypes} from 'react';
-import ReactDOM from 'react-dom';
 import Subheader from 'material-ui/Subheader';
 import Divider from 'material-ui/Divider';
 import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
@@ -26,7 +25,10 @@ const styles={
   }
 }
 
-export const About = () => (
+export default class About extends React.Component {
+
+  render () {
+
   <div style={{paddingLeft  : '16px', paddingRight: '16px'}}>
     <div style={styles.title}>
       About All For One
@@ -110,4 +112,4 @@ export const About = () => (
     </div>
 
   </div>
-)
+}}

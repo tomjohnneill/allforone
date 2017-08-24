@@ -1,5 +1,4 @@
 import React , {PropTypes} from 'react';
-import ReactDOM from 'react-dom';
 import { createContainer } from 'meteor/react-meteor-data';
 import {grey200, grey500, grey100, amber500, blue200} from 'material-ui/styles/colors'
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
@@ -12,7 +11,6 @@ import {Projects} from '/imports/api/projects.js';
 import Divider from 'material-ui/Divider';
 import {Tabs, Tab} from 'material-ui/Tabs';
 import { Session } from 'meteor/session';
-import FacebookProvider, { Comments } from 'react-facebook';
 import Dialog from 'material-ui/Dialog';
 import {Link, browserHistory} from 'react-router'
 import {Threads} from '/imports/api/threads.js';
@@ -32,6 +30,9 @@ import {
 import Refresh from 'material-ui/svg-icons/navigation/refresh';
 import AutoComplete from 'material-ui/AutoComplete';
 import Chip from 'material-ui/Chip';
+import SwipeableViews from 'react-swipeable-views';
+
+import MessageAdmin from '../../ui/pages/messageadmin.jsx';
 
 var removeMd = require('remove-markdown')
 
@@ -85,7 +86,7 @@ export class Admin extends React.Component{
   constructor(props) {
     super(props);
     console.log(this.props)
-    this.state = {preferences: [], pledge: {}, dataSource: [], list: [], refinedList:[]}
+    this.state = {preferences: [], pledge: {}, dataSource: [], list: [], refinedList:[], pledges: []}
   }
 
   componentWillReceiveProps(nextProps) {
@@ -127,8 +128,41 @@ export class Admin extends React.Component{
     this.setState({refinedList: array });
   }
 
+  handleChange(value) {
+    var lookup = ['users','pledges','community']
+    browserHistory.push('/admin/' + lookup[value])
+    this.setState({
+      value: lookup[value],
+      slideIndex: value,
+    });
+    };
+
+    handleTabClick(value) {
+
+      var lookup = ['users','pledges','community']
+      browserHistory.push('/admin/' + value)
+      this.setState({
+        value: value,
+        slideIndex: lookup.indexOf(value),
+      });
+      };
+
   addToGroup (hi) {
     Meteor.call('changeUserRole', this.state.refinedList, hi)
+  }
+
+  handleAddPledge(id, e, input)  {
+    var pledges = this.state.pledges
+    if (input) {
+      pledges.push(id)
+    } else {
+      pledges.splice(pledges.indexOf(id), 1)
+    }
+    this.setState({pledges: pledges})
+  }
+
+  handleApprove = (e) => {
+    Meteor.call('approvePledges', this.state.pledges)
   }
 
   render() {
@@ -137,6 +171,24 @@ export class Admin extends React.Component{
     return(
       <div>
 
+        <Tabs
+          tabItemContainerStyle={{height: '36px'}}
+            value={this.props.params.adminTab}
+            onChange={this.handleTabClick.bind(this)}
+            tabItemContainerStyle={{backgroundColor: grey500}}
+            inkBarStyle={{backgroundColor: 'white'}}
+          >
+            <Tab label="Users"  buttonStyle={{height: '36px'}} value="users"/>
+            <Tab label="Pledges" buttonStyle={{height: '36px'}} value="pledges"/>
+            <Tab label="Community" buttonStyle={{height: '36px'}} value="community"/>
+          </Tabs>
+
+          <SwipeableViews
+            animateHeight={true}
+          index={this.state.slideIndex}
+          onChangeIndex={this.handleChange.bind(this)}
+        >
+        <div>
           <div style={styles.box}>
             {this.props.loading ? null :
             <Card style={{padding: '16px'}}>
@@ -189,6 +241,33 @@ export class Admin extends React.Component{
 
           }
           </div>
+        </div>
+
+
+
+        <div>
+          <div>
+            <RaisedButton label='Approve pledges' onTouchTap={this.handleApprove}/>
+                {this.props.pledges.map((pledge) => (
+                  <ListItem primaryText={pledge.title}
+                    rightToggle={<Toggle onToggle={this.handleAddPledge.bind(this, pledge._id)}/>}/>
+                ))}
+
+
+          </div>
+          <div style={{height: '36px'}}/>
+        </div>
+
+        {/* New tab*/}
+
+        <div>
+          <div>
+          <MessageAdmin />
+          </div>
+        </div>
+        </SwipeableViews>
+
+
 
 
         </div>
@@ -208,10 +287,12 @@ Admin.propTypes = {
 
 export default createContainer(({params}) => {
   const subscriptionHandler = Meteor.subscribe("userScores");
+  const pledgeHandler = Meteor.subscribe("pledgeList")
 
 
   return {
-    loading: !subscriptionHandler.ready(),
+    loading: !subscriptionHandler.ready() || !pledgeHandler.ready(),
+    pledges: Pledges.find({}).fetch(),
     users: Meteor.users.find({_id: Meteor.userId()}).fetch(),
   };
 }, Admin);

@@ -1,5 +1,4 @@
 import React , {PropTypes} from 'react';
-import ReactDOM from 'react-dom';
 import { createContainer } from 'meteor/react-meteor-data';
 import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
@@ -9,7 +8,6 @@ import LinearProgress from 'material-ui/LinearProgress';
 import Divider from 'material-ui/Divider';
 import {Tabs, Tab} from 'material-ui/Tabs';
 import { Session } from 'meteor/session';
-import FacebookProvider, { Comments } from 'react-facebook';
 import Dialog from 'material-ui/Dialog';
 import {Link, browserHistory} from 'react-router'
 import {Pledges} from '/imports/api/pledges.js';
@@ -20,11 +18,24 @@ import Dropzone from 'react-dropzone';
 import SelectField from 'material-ui/SelectField';
 import MenuItem from 'material-ui/MenuItem';
 import FlatButton from 'material-ui/FlatButton';
-import RichTextEditor from 'react-rte';
+import Loadable from 'react-loadable';
 import MessengerPlugin from 'react-messenger-plugin';
 import Subheader from 'material-ui/Subheader';
+import Chip from 'material-ui/Chip';
 
 var removeMd = require('remove-markdown')
+
+const Loading = () => (
+  <div>
+    Hi
+  </div>
+)
+
+
+const LoadableComponent = Loadable({
+  loader: () => import('/imports/ui/pages/texteditor.jsx'),
+  loading: Loading
+});
 
 const styles = {
   box: {
@@ -65,67 +76,12 @@ const styles = {
 
 }
 
-const toolbarConfig = {
-  // Optionally specify the groups to display (displayed in the order listed).
-  display: ['INLINE_STYLE_BUTTONS', 'IMAGE_BUTTON','LINK_BUTTONS', 'BLOCK_TYPE_BUTTONS', 'BLOCK_TYPE_DROPDOWN', 'HISTORY_BUTTONS'],
-  INLINE_STYLE_BUTTONS: [
-    {label: 'Bold', style: 'BOLD', className: 'custom-css-class'},
-    {label: 'Italic', style: 'ITALIC'},
-    {label: 'Underline', style: 'UNDERLINE'}
-  ],
-  BLOCK_TYPE_DROPDOWN: [
-    {label: 'Normal', style: 'unstyled'},
-    {label: 'Heading Large', style: 'header-one'},
-    {label: 'Heading Medium', style: 'header-two'},
-    {label: 'Heading Small', style: 'header-three'}
-  ],
-  BLOCK_TYPE_BUTTONS: [
-    {label: 'UL', style: 'unordered-list-item'},
-    {label: 'OL', style: 'ordered-list-item'}
-  ]
-};
-
-class MyStatefulEditor extends React.Component {
-  static propTypes = {
-    onChange: PropTypes.func
-  };
-
-
-
-  state = {
-    value: RichTextEditor.createEmptyValue()
-  }
-
-  onChange = (value) => {
-    this.setState({value});
-    if (this.props.onChange) {
-      // Send the changes up to the parent component as an HTML string.
-      // This is here to demonstrate using `.toString()` but in a real app it
-      // would be better to avoid generating a string on each change.
-      this.props.onChange(
-        value.toString('html')
-      );
-    }
-  };
-
-  render () {
-    return (
-      <RichTextEditor
-        placeholder="Tell a story"
-        toolbarConfig={toolbarConfig}
-        editorClassName="story-editor"
-        value={this.state.value}
-        onChange={this.onChange}
-      />
-    );
-  }
-}
 
 export class EditPledge extends React.Component{
   constructor(props) {
     super(props);
     console.log(this.props)
-    this.state = {open: false, story: RichTextEditor.createEmptyValue()}
+    this.state = {open: false, renderMessenger: false, tags: [], tagText: ''}
   }
 
   componentWillMount() {
@@ -135,6 +91,26 @@ export class EditPledge extends React.Component{
   });
 }
 
+
+componentDidMount() {
+    window.addEventListener('scroll', this.handleScroll);
+}
+
+componentWillUnmount() {
+    window.removeEventListener('scroll', this.handleScroll);
+  }
+
+
+  handleScroll = () => {
+    var scrollHeight = document.documentElement.scrollHeight
+      var pageYOffset = window.pageYOffset
+      var innerHeight = window.innerHeight
+      console.log(this.state.renderMessenger)
+      console.log(scrollHeight - innerHeight - pageYOffset)
+      if (scrollHeight - innerHeight - pageYOffset < 150 && !this.state.renderMessenger) {
+        this.setState({renderMessenger :true})
+      }
+  }
 
 generateSlug = (event) => {
   var title = event.target.value
@@ -188,13 +164,18 @@ handleDeadline = (event, date) => {
   this.setState({deadline: date})
 }
 
-
+componentWillReceiveProps(nextProps) {
+  if (!nextProps.loading) {
+    this.setState({tags: nextProps.pledge.tags ? nextProps.pledge.tags : [],
+      facebookURL: nextProps.pledge.facebookURL ? nextProps.pledge.facebookURL : ''})
+  }
+}
 
 submitPledge = (event) => {
   var title = this.state.title ? this.state.title: this.props.pledge.title
   var target = this.state.target ? this.state.target: this.props.pledge.target
   var deadline = this.state.deadline ? this.state.deadline.toISOString() : this.props.pledge.deadline
-  var what = this.state.what ? this.state.what : this.props.pledge.what
+  var description = this.state.description ? this.state.description : this.props.pledge.description
   var why = this.state.why ? this.state.why : this.props.pledge.why
   var how = this.state.how ? this.state.how: this.props.pledge.how
   var slug = this.state.slug? this.state.slug: this.props.pledge.slug
@@ -202,6 +183,8 @@ submitPledge = (event) => {
   var duration = this.state.duration ? this.state.duration : this.props.pledge.duration
   var impact = this.state.impact ? this.state.impact: this.props.pledge.impact ? this.props.pledge.impact : ''
   var summary = this.state.summary ? this.state.summary: this.props.pledge.summary ? this.props.pledge.summary : ''
+  var facebookURL = this.state.facebookURL ? this.state.facebookURL : this.props.pledge.facebookURL
+  var tags = this.state.tags ? this.state.tags : this.props.pledge.tags
 
   if (title === 'Untitled Pledge' || title === '') {
     Bert.alert('Your pledge needs a title')
@@ -212,21 +195,15 @@ submitPledge = (event) => {
     Bert.alert('Your pledge needs a duration', 'danger')
   } else if (deadline === '' || deadline === undefined) {
     Bert.alert('Your pledge needs a deadline', 'danger')
-  } else if (what === '' || what === undefined) {
-    Bert.alert("You need to provide a bit more detail on the 'What' tab", 'danger')
-  } else if (why === '' || why === undefined) {
-    Bert.alert("You need to provide a bit more detail on the 'Why' tab", 'danger')
-  } else if (how === '' || how === undefined) {
-    Bert.alert("You need to provide a bit more detail on the 'How' tab", 'danger')
+  } else if (description === '' || description === undefined) {
+    Bert.alert("You need to provide a bit more detail on the description tab", 'danger')
   } else {
 
     var pledge = {
       title: title,
       target: target,
       deadline: deadline,
-      what: what,
-      why: why,
-      how: how,
+      description: description,
       slug: slug,
       creatorPicture: picture,
       _id: this.props.params._id,
@@ -236,8 +213,11 @@ submitPledge = (event) => {
       pledgedUsers: this.props.pledge.pledgedUsers,
       pledgeCount: this.props.pledge.pledgeCount,
       duration: duration,
+      facebookURL: facebookURL,
       impact: impact,
+      tags: tags,
       summary: summary,
+      approved: this.props.pledge.approved ? this.props.pledge.approved : false
     }
 
     console.log(pledge)
@@ -308,8 +288,51 @@ deletePledge = (e) => {
   })
 }
 
-handleOnChange = (value) => {
-  console.log(value)
+handleFacebookURL = (e, newValue) => {
+  this.setState({facebookURL: newValue})
+}
+
+
+
+handleOnChange = (string) => {
+  this.setState({description: string})
+}
+
+handleTagSubmit = (e) => {
+  e.preventDefault()
+  console.log(this.state.tagText)
+  console.log(e.key)
+  if (e.key == ',' || e.key == 'Enter') {
+    this.setState({tags: this.state.tags.concat([this.state.tagText])})
+  this.setState({tagText: ''})
+}
+else {
+  var tagText = this.state.tagText
+  console.log(this.state.tagText + tagText)
+  this.setState({tagText: tagText + e.key})
+}
+
+}
+
+handleTagType = (event, newValue) => {
+  this.setState({tagText: newValue})
+}
+
+handleRemoveTag (tag, e)  {
+  console.log(tag)
+  var i = this.state.tags.indexOf(tag)
+  console.log(i)
+  console.log(this.state.tags)
+  var newArray = this.state.tags.splice(i, 1)
+  var newnewArray = this.state.tags.filter(function(i) {
+      return i != tag
+    })
+  console.log(newArray)
+  console.log(newnewArray)
+  this.setState({
+    tags: newnewArray
+  })
+
 }
 
 render() {
@@ -406,10 +429,63 @@ render() {
             Use your pledge description to share more about what you’re finding people to do and how you plan to pull it off. It’s up to you to make the case for your pledge.
           </div>
           <div style={{height: '16px'}}/>
-          <MyStatefulEditor styles={{fontFamily: 'Roboto', padding: '10px', marginTop: '10px'}} onChange={this.handleOnChange}/>
+          <LoadableComponent styles={{fontFamily: 'Roboto', padding: '10px', marginTop: '10px'}}
+            returnableValue={this.props.pledge.returnableValue}
+            description={this.props.pledge.description}
+            onChange={this.handleOnChange}/>
           </div>
           }/>
       </Card>
+
+      <Card style={{marginTop: '20px'}}>
+        <CardTitle style={{marginBottom: '10px'}} title='Add social media accounts'
+          children={
+            <div>
+        <div style={styles.explanation}>
+          Add your social media accounts and we'll give people the option to like your Facebook page just under the story. Add the whole url, not the just the account name.
+        </div>
+        <div style={{height: '16px'}}/>
+          <TextField hintText='Facebook Page URL' value={this.state.facebookURL} onChange={this.handleFacebookURL}/>
+        </div>
+        }/>
+    </Card>
+
+    <Card style={{marginTop: '20px'}}>
+      <CardTitle style={{marginBottom: '10px'}} title='Add subject tags'
+        children={
+          <div>
+        <div style={styles.explanation}>
+          Add some subject tags to this pledge so we can show it to people who might be interested. Type each tag separated by a comma, or hit Enter after each one.
+        </div>
+        <div style={{marginTop: '10px'}}>
+          {this.state.tags ? this.state.tags.map(
+            (tag) => (
+              <div style={{float: 'left', marginBottom: '5px'}}>
+              <Chip
+
+                onRequestDelete={this.handleRemoveTag.bind(this, tag)}
+                >
+                {tag}
+              </Chip>
+              </div>
+            )
+          ) : null}
+          </div>
+          <div >
+          <TextField
+            hintText='Type each tag separated by a comma'
+            fullWidth={true}
+            multiLine={true}
+            onChange={this.handleTagType}
+            onKeyPress={this.handleTagSubmit}
+            value={this.state.tagText}
+
+      /></div>
+    </div>}
+    />
+</Card>
+
+
       <Card style={{marginTop: '20px'}}>
 
           />
@@ -483,7 +559,7 @@ render() {
             Before your pledge appears on the front page of All For One, we will get in contact with you to talk through your pledge, and work out how best we can work together to make it happen.
           </div>
           }/>
-        {this.props.thisUser[0].userMessengerId  ? null :
+        {this.props.thisUser[0].userMessengerId || !this.state.renderMessenger ? null :
         <div style={{paddingBottom: '16px'}}>
           <Subheader>
             We will reply to your application on Messenger
@@ -506,7 +582,7 @@ render() {
     </div>
     }
 
-        <RaisedButton label='Submit Application' disabled={!this.props.thisUser[0].userMessengerId} onTouchTap={this.submitPledge} secondary={true} fullWidth={true}/>
+        <RaisedButton label='Submit Application' disabled={!this.props.thisUser[0].userMessengerId && (!Roles.getRolesForUser(Meteor.userId()).includes('admin'))} onTouchTap={this.submitPledge} secondary={true} fullWidth={true}/>
         <div style={{height: '20px'}}/>
         <FlatButton label='Delete Pledge' onTouchTap={this.handleDelete} fullWidth={true}/>
         </Card>
