@@ -17,6 +17,7 @@ import IconButton from 'material-ui/IconButton';
 import DropDownMenu from 'material-ui/DropDownMenu';
 import MenuItem from 'material-ui/MenuItem';
 import Map from '/imports/ui/components/map.jsx'
+import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
 
 const styles = {
   box: {
@@ -58,6 +59,12 @@ const styles = {
      toggle: {
     marginBottom: 16,
   },
+
+
+  explanation: {
+    fontSize: '8pt',
+    color: grey500
+  }
 
 }
 
@@ -232,7 +239,7 @@ export class Groups extends React.Component{
   handleMakeGroup = (e) => {
     e.preventDefault()
     Meteor.call('saveGroupCriteria', this.state.details, this.state.locationChoice
-    , this.state.json, this.state.filters, this.props.params._id)
+    , this.state.json, this.state.filters, this.props.params._id, this.state.groupName)
     console.log('ues roles package to assign users from state to certain role group')
     Meteor.call('addUsersToPledgeGroup', this.state.overallUsers, this.state.groupName, this.props.params._id)
     Meteor.call('addNameToPledgeRoles' , this.state.groupName, this.props.params._id)
@@ -263,15 +270,26 @@ export class Groups extends React.Component{
         </div>
         </div>
       </span>
+
         <Subheader style={{backgroundColor: 'white'}}>
           Create a User Group
         </Subheader>
         <div>
         {this.props.loading ? null :
-
+        Meteor.userId() === this.props.pledge.creatorId || Roles.userIsInRole('admin', Roles.GLOBAL_GROUP)
+        || Roles.userIsInRole('administrator', this.props.params._id)
+        ?
         <div style={styles.box}>
-          <div style={{backgroundColor: 'white'}}>
 
+
+          <div >
+            <Card style={{paddingBottom: '16px'}}>
+              <CardTitle title='Filter by responses'
+                children={
+                  <div style={styles.explanation}>
+                    Create a group of users that have answered your questions in the same way.
+                  </div>
+                }/>
             {this.props.details.map((detail) => (
               (detail.type !== 'location') ?
               <div>
@@ -298,9 +316,18 @@ export class Groups extends React.Component{
               </div>
             : null) )}
 
+            </Card>
 
+
+            <Card style={{marginTop: '10px'}}>
+              <CardTitle title='Filter by Location'
+                children={
+                  <div style={styles.explanation}>
+                    Create a group of users based on a map location - choose whether to look for location of last login, or the answer to a form question.
+                  </div>
+                }/>
           <Subheader>
-            Filter by location
+            Choose Location Type
           </Subheader>
 
           <DropDownMenu value={this.state.locationChoice} onChange={this.handleLocationChange}>
@@ -316,21 +343,24 @@ export class Groups extends React.Component{
 
           </DropDownMenu>
 
-
+          <Subheader>
+            Draw Map Boundary
+          </Subheader>
 
           <Map locationChoice={this.state.locationChoice}
             findGeoMatching={this.handleFindGeoMatching}/>
 
+        </Card>
 
-          <div>
-            Payment status
-          </div>
-
-          <div>
-            Role Existing Groups
-          </div>
           <div>
             {this.state.overallUsers ?
+              <Card style={{marginTop: '10px'}}>
+                <CardTitle title='Users in this group'
+                  children={
+                    <div style={styles.explanation}>
+                      Returning the total number of users and a short list of user names
+                    </div>
+                  }/>
               <div>
               <Subheader style={{backgroundColor: 'white'}}>
                 <b>{this.state.overallUsers.length}</b> matched users
@@ -344,12 +374,34 @@ export class Groups extends React.Component{
           ))}
             </div>
             </div>
+            </Card>
              : null}
           </div>
           </div>
+          <Card style={{marginTop: '10px'}}>
+            <CardTitle title='Name and Save Group'
+              children={
+                <div style={styles.explanation}>
+                  Until you've named your group and found matching users, you cannot save it.
+                </div>
+              }/>
+            <div style={{paddingLeft: '16px', paddingBottom: '16px'}}>
           <TextField hintText='Give this user group a name' onChange={this.handleChangeGroupName}/>
-          <RaisedButton label='Save Group' onTouchTap={this.handleMakeGroup}/>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '16px'}}>
+          <RaisedButton primary={true} disabled={!this.state.groupName || !this.state.overallUsers || !this.state.overallUsers.length > 0}
+            label='Save Group' onTouchTap={this.handleMakeGroup}/>
+          </div>
+          </Card>
         </div>
+
+        :
+        <div style={{display: 'flex', backgroundColor: grey200, height: '250px', width: '100%', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{padding: '5px'}}>
+              You do not have permission to access this page
+            </div>
+      </div>
+
       }
 
       </div>

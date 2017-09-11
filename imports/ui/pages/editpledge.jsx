@@ -445,7 +445,7 @@ render() {
           Add your social media accounts and we'll give people the option to like your Facebook page just under the story. Add the whole url, not the just the account name.
         </div>
         <div style={{height: '16px'}}/>
-          <TextField hintText='Facebook Page URL' value={this.state.facebookURL} onChange={this.handleFacebookURL}/>
+          <TextField hintText='Facebook Page URL' value={this.state.facebookURL ? this.state.facebookURL: this.props.pledge.facebookURL} onChange={this.handleFacebookURL}/>
         </div>
         }/>
     </Card>

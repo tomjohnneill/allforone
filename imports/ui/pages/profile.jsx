@@ -531,14 +531,14 @@ export class Profile extends Component {
                   <div style={{paddingLeft: '16px', color: grey500, fontStyle: 'italic'}}>
                     Get more friends to join, or sign up to more pledges to increase your score</div>
                   <div style={{padding: '16px'}}>
-                    <Tabs tabItemContainerStyle={{backgroundColor: '#006699', height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>
-                      <Tab label='Your friends' buttonStyle={{backgroundColor: '#006699',height: '36px'}}>
+                    <Tabs tabItemContainerStyle={{backgroundColor: '#1251BA', height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>
+                      <Tab label='Your friends' buttonStyle={{backgroundColor: '#1251BA',height: '36px'}}>
                         <SocialLeaderboard/>
                       </Tab>
-                      <Tab label='Everyone' buttonStyle={{backgroundColor: '#006699',height: '36px'}}>
+                      <Tab label='Everyone' buttonStyle={{backgroundColor: '#1251BA',height: '36px'}}>
                         <Leaderboard/>
                       </Tab>
-                      <Tab label='Your score' buttonStyle={{backgroundColor: '#006699',height: '36px'}}>
+                      <Tab label='Your score' buttonStyle={{backgroundColor: '#1251BA',height: '36px'}}>
                         <div style={{backgroundColor: 'white', padding: '10px'}}>
                           {this.props.thisUser.score ?
                             <div>

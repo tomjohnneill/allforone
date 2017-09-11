@@ -72,13 +72,26 @@ export class UserList extends React.Component{
   constructor(props) {
     super(props);
     console.log(this.props)
-
+    this.state ={emailArray: {}, smsArray: {}, oneSignalArray: {}, messengerArray:{}}
   }
 
 
   componentWillReceiveProps(nextProps) {
+
     var userResponses = {}
     if (!nextProps.loading) {
+      Meteor.call('whosGotEmail', nextProps.users, (err, response) => {
+        this.setState({emailArray: response})
+      })
+      Meteor.call('whosGotSMS', nextProps.users, (err, response) => {
+        this.setState({smsArray: response})
+      })
+      Meteor.call('whosGotOneSignal', nextProps.users, (err, response) => {
+        this.setState({oneSignalArray: response})
+      })
+      Meteor.call('whosGotMessenger', nextProps.users, (err, response) => {
+        this.setState({messengerArray: response})
+      })
       var details = nextProps.details
 
       for (var i in details) {
@@ -125,9 +138,13 @@ export class UserList extends React.Component{
         </div>
       </span>
         <Subheader style={{backgroundColor: 'white'}}>
-          Leave some feedback
+          A full list of users pledged
         </Subheader>
         {this.props.loading ? null :
+          Meteor.userId() === this.props.pledge.creatorId || Roles.userIsInRole('admin', Roles.GLOBAL_GROUP)
+          || Roles.userIsInRole('administrator', this.props.params._id) ?
+
+
 
         <div style={styles.box}>
           <List style={{backgroundColor: 'white'}}>
@@ -151,22 +168,22 @@ export class UserList extends React.Component{
 
                           <div style={{display: 'flex', paddingLeft: '10px', paddingBottom: '10px'}}>
                           <div style={{}}>
-                          {user.userMessengerId ? <i className="fa fa-facebook-official fa-2x" style={{color: '#006699'}}
+                          {this.state.messengerArray[user._id] ? <i className="fa fa-facebook-official fa-2x" style={{color: '#1251BA'}}
                              aria-hidden="true"></i> : <i className="fa fa-facebook-official fa-2x" style={{color: grey200}}
                                 aria-hidden="true"></i>}
                           </div>
                           <div style={{marginLeft: '10px'}}>
-                            {user.OneSignalUserId ? <i className="fa fa-bell fa-2x" style={{color: '#006699'}}
+                            {this.state.oneSignalArray[user._id] ? <i className="fa fa-bell fa-2x" style={{color: '#1251BA'}}
                                aria-hidden="true"></i> : <i className="fa fa-bell fa-2x" style={{color: grey200}}
                                   aria-hidden="true"></i>}
                           </div>
                           <div style={{marginLeft: '10px'}}>
-                            {user.profile.email ? <i className="fa fa-envelope-o fa-2x" style={{color: '#006699'}}
+                            {this.state.emailArray[user._id] ? <i className="fa fa-envelope-o fa-2x" style={{color: '#1251BA'}}
                                aria-hidden="true"></i> : <i className="fa fa-envelope-o fa-2x" style={{color: grey200}}
                                   aria-hidden="true"></i>}
                           </div>
                           <div style={{marginLeft: '10px'}}>
-                            {user.profile.phoneNo ? <i className="fa fa-comment fa-2x" style={{color: '#006699'}}
+                            {this.state.smsArray[user._id] ? <i className="fa fa-comment fa-2x" style={{color: '#1251BA'}}
                                aria-hidden="true"></i> : <i className="fa fa-comment fa-2x" style={{color: grey200}}
                                   aria-hidden="true"></i>}
                           </div>
@@ -200,6 +217,12 @@ export class UserList extends React.Component{
       </List>
 
         </div>
+        :
+        <div style={{display: 'flex', backgroundColor: grey200, height: '250px', width: '100%', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{padding: '5px'}}>
+              You do not have permission to access this page
+            </div>
+      </div>
       }
       </div>
     )

@@ -202,14 +202,26 @@ export class PaymentPlans extends React.Component{
         Subscription payments
       </Subheader>
 
+      {        !this.props.loading && !this.props.pledge.stripe.stripe_user_id && (Meteor.userId() === this.props.pledge.creatorId || Roles.userIsInRole('admin', Roles.GLOBAL_GROUP)
+        || Roles.userIsInRole('administrator', this.props.params._id)) ?
+      <div style={{backgroundColor: 'white' , height: '200px', width: '100%', display: 'flex',
+      alignItems: 'center', justifyContent: 'center'}}>
     <a href={"https://connect.stripe.com/oauth/authorize?response_type=code&client_id=" + Meteor.settings.public.stripe.client_id + "&scope=read_write&" + "state=" + this.props.params._id}
     className="stripe-connect light-blue"><span>Connect with Stripe</span></a>
+        </div>
+        :
+      !this.props.loading && (Meteor.userId() === this.props.pledge.creatorId || Roles.userIsInRole('admin', Roles.GLOBAL_GROUP)
+        || Roles.userIsInRole('administrator', this.props.params._id)) ?
+      <div>
 
       <Card style={{marginLeft: '5px', marginRight: '5px', marginTop: '10px', padding: '10px'}}>
         <CardTitle style={{paddingBottom: '0px', paddingLeft: '6px', paddingTop: '6px'}}
           title='Your plans'/>
-        {!this.props.loading && this.props.pledge.stripe && this.props.pledge.stripe.plans ? this.props.pledge.stripe.plans.map((plan) => (
-          <ListItem primaryText={plan.name} leftIcon={<Avatar children={plan.amount}/>}/>
+        {!this.props.loading && this.props.pledge.stripe &&
+          (Meteor.userId() === this.props.pledge.creatorId || Roles.userIsInRole('admin', Roles.GLOBAL_GROUP)
+          || Roles.userIsInRole('administrator', this.props.params._id)) &&
+          this.props.pledge.stripe.plans ? this.props.pledge.stripe.plans.map((plan) => (
+          <ListItem primaryText={plan.name} leftIcon={<Avatar/>} rightIcon={<div style={{color: grey500}}>{'£' + plan.amount/100 }</div>}/>
         )) :
           <div style={{textAlign: 'center', verticalAlign: 'center', margin: '10px'
             , backgroundColor: grey200, height: '50px'
@@ -223,7 +235,7 @@ export class PaymentPlans extends React.Component{
       </Card>
 
 
-      <div>
+
         <Card style={{marginLeft: '5px', marginRight: '5px', marginTop: '20px', paddingBottom: '16px', position: 'relative'}}>
           <CardTitle title='Add a new plan' children={
               <div style={styles.explanation}>
@@ -253,10 +265,20 @@ export class PaymentPlans extends React.Component{
           <RaisedButton primary={true} onTouchTap={this.handleCreatePlan} label='Add Plan'/>
         </div>
       </Card>
+    </div>
+      :
+      !this.props.loading ?
+
+      <div style={{display: 'flex', backgroundColor: grey200, height: '250px', width: '100%', alignItems: 'center', justifyContent: 'center'}}>
+          <div style={{padding: '5px'}}>
+            You do not have permission to access this page
+          </div>
+    </div>
+    :
+      null }
       </div>
 
       </div>
-    </div>
   )
   }
 }
@@ -269,7 +291,7 @@ PaymentPlans.propTypes = {
 
 export default createContainer(({params}) => {
   const subscriptionHandler = Meteor.subscribe("editor", params._id);
-  const pledgeUserHandler = Meteor.subscribe("pledgeUsers", params._id);
+  const pledgeUserHandler = Meteor.subscribe("userData");
   const roleHandler = Meteor.subscribe("pledgeRoles");
 
   return {

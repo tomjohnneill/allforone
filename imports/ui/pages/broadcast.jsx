@@ -91,6 +91,11 @@ export class Broadcast extends React.Component{
 
   handleDropDownChange = (e, n, value) => {
     this.setState({group: value})
+    Meteor.call('recalculateGroupMembers', value, this.props.params._id)
+  }
+
+  handleConvoDropDownChange = (e, n, value) => {
+    this.setState({conversationType: value})
   }
 
   changeMessageType (type, e) {
@@ -124,7 +129,7 @@ export class Broadcast extends React.Component{
     e.preventDefault()
     Meteor.call('sendBroadcastMessage', this.state.group, this.props.params._id
     , this.state.messenger, this.state.push, this.state.email, this.state.sms,
-    this.state.text, this.state.picture, (err, result) => {
+    this.state.text, this.state.picture, this.state.conversationType, (err, result) => {
       if (err) {
         Bert.alert(err.reason, 'danger')
       } else {
@@ -173,6 +178,9 @@ export class Broadcast extends React.Component{
             <Subheader>
               Select your audience
             </Subheader>
+            <div style={styles.explanation}>
+            Send a message to everyone, or choose one of your User Groups
+            </div>
             <DropDownMenu value={this.state.group} onChange={this.handleDropDownChange}>
               <MenuItem value='everyone' primaryText='Everyone'/>
             {this.props.pledge.pledgeRoles ? this.props.pledge.pledgeRoles.map((role) => (
@@ -260,7 +268,7 @@ export class Broadcast extends React.Component{
           </div>
 
           <Subheader style={{backgroundColor: 'white'}}>
-            Choose the type(s) of message
+            Choose the delivery method
           </Subheader>
           <div style={styles.explanation}>
             We will only ever send a user at most 2 different kinds of message (usually a notification type, and an email), but choosing more options can enable you to reach more users.
@@ -269,6 +277,19 @@ export class Broadcast extends React.Component{
 
           <MessageType changeMessageType={this.changeMessageType}
             groupName={this.state.group} pledgeId={this.props.params._id} />
+
+          <div style={{backgroundColor: 'white'}}>
+              <Subheader>
+                Choose the type of conversation
+              </Subheader>
+              <div style={{paddingLeft: '16px', paddingRight: '16px'}}>
+                <DropDownMenu value={this.state.conversationType} onChange={this.handleConvoDropDownChange}>
+                  <MenuItem value='group' primaryText='Group Chat'/>
+                  <MenuItem value='individual' primaryText='Individual Conversations'/>
+                </DropDownMenu>
+              </div>
+          </div>
+
 
             <Subheader style={{backgroundColor: 'white'}}>
               Send your message
@@ -281,6 +302,7 @@ export class Broadcast extends React.Component{
               , justifyContent: 'center', width: '100%', paddingTop: '16px'}}>
               <RaisedButton label='Send Message' primary={true} onTouchTap={this.handleSendMessage}/>
             </div>
+            <div style={{height: '16px'}}/>
 
         </div>
         : <div style={{display: 'flex', backgroundColor: grey200, height: '250px', width: '100%', alignItems: 'center', justifyContent: 'center'}}>

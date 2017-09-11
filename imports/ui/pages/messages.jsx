@@ -12,8 +12,11 @@ import Avatar from 'material-ui/Avatar';
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
 import Send from 'material-ui/svg-icons/content/send';
-
-var _ = lodash
+import FontIcon from 'material-ui/FontIcon';
+import MoreVert from 'material-ui/svg-icons/navigation/more-vert';
+import Menu from 'material-ui/Menu';
+import MenuItem from 'material-ui/MenuItem';
+import Popover from 'material-ui/Popover';
 
 const styles = {
   smallIcon: {
@@ -135,11 +138,7 @@ const styles = {
   }
 }
 
-function distinct(collection, field) {
-  return _.uniq(collection.find({}, {
-    sort: {[field]: 1}, fields: {[field]: 1}
-  }).fetch().map(x => x[field]), true);
-  }
+
 
 function dateTimeFormat(now) {
   var time = now.getHours() + ':' + (now.getMinutes() < 10 ?
@@ -157,11 +156,15 @@ function dateTimeFormat(now) {
 export class Messaging extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {focused: ''}
+    this.state = {focused: '', open: false}
   }
 
-  handleConvoClick (id, group, sender, conversationId)  {
-    this.setState({focused: {id: id, group: group, conversationId: conversationId}})
+  handleConvoClick (id, group, conversationId, type, obj)  {
+    this.setState({focused: {id: id, group: group, conversationId: conversationId, type: type}})
+    console.log(obj)
+    console.log(conversationId)
+    browserHistory.push('/messages/' + conversationId)
+    Meteor.call('seenMessage', conversationId)
   }
 
   componentDidMount() {
@@ -179,6 +182,7 @@ componentDidUpdate() {
   handleBackClick = (e) => {
     e.preventDefault()
     this.setState({focused: ''})
+    browserHistory.push('/messages' )
   }
 
   handlePrint = (e) => {
@@ -186,13 +190,24 @@ componentDidUpdate() {
     Meteor.call('returnConversations')
   }
 
+  handleRequestClose = () => {
+    this.setState({
+      open: false
+    });
+  };
 
   handleChange = (e, newValue) => {
     this.setState({message: newValue})
   }
 
+  handleMoreClick = (e) => {
+    e.preventDefault()
+    Meteor.call('recalculateGroupMembers', this.state.focused.group, this.state.focused.id)
+  }
+
   sendMessage = (e) => {
-    Meteor.call('sendMessageReply', this.state.message, this.state.focused.id, this.state.focused.group, this.state.focused.conversationId)
+    Meteor.call('sendMessageReply', this.state.message, this.state.focused.id
+    , this.state.focused.group, this.state.focused.conversationId)
     this.setState({message: ''})
   }
 
@@ -205,46 +220,137 @@ componentDidUpdate() {
       }
     }
 
+    handleGroupInfo = (e) => {
+      e.preventDefault()
+    }
+
+    handleContactInfo  (senderId)  {
+
+      browserHistory.push('/profile/' + senderId)
+    }
+
+    handleSettingsClick = (e) => {
+      e.preventDefault()
+      this.setState({
+        open: true,
+        anchorEl: e.currentTarget
+      })
+      Meteor.call('recalculateGroupMembers', this.state.focused.group, this.state.focused.id)
+    }
+
+    componentWillReceiveProps(nextProps) {
+      if (!nextProps.loading) {
+        if (this.props.params.conversationId) {
+          var conversation = Conversations.findOne({_id: this.props.params.conversationId})
+          this.setState({focused: {id: conversation.id,
+             group: conversation.group
+             , conversationId: conversation._id, type: conversation.type}})
+        }
+      }
+    }
 
   render() {
-
-    console.log(this.props)
+    var sender, senderId, senderAvatar
     if (!this.props.loading) {
-      console.log(this.props)
+      var conversation = Conversations.findOne({_id: this.props.params.conversationId})
+      if ((this.state.focused || this.props.params.conversationId) && conversation.type !== 'group') {
+        var members = conversation.members
+        for (var i = 0; i < members.length; i++) {
+          console.log(members[i])
+          console.log(Meteor.userId())
+          if (members[i] !== Meteor.userId()) {
+            console.log(members[i])
+
+            console.log(Meteor.users.findOne({_id: members[i]}))
+            sender = Meteor.users.findOne({_id: members[i]}) ? Meteor.users.findOne({_id: members[i]}).profile.name : null
+            console.log(sender)
+            senderId = members[i]
+            if (sender !== null) {
+              senderAvatar = Meteor.users.findOne({_id: members[i]}).profile.picture
+              break};
+          }
+        }
+      }
+      console.log(this.state)
+
+      var whichAvatars = {}
+      for (var i =0 ; i< this.props.conversations.length; i++) {
+        if (this.props.conversations[i].type !== 'group') {
+          var avatars = this.props.conversations[i].avatars ? this.props.conversations[i].avatars : []
+          var members = this.props.conversations[i].members ? this.props.conversations[i].members : []
+          for (var j =0; j<members.length ; j++) {
+            if (members[j] !== Meteor.userId()) {
+              if (avatars[0] && !avatars[0][members[j]] && members[j] !== Meteor.userId()) {
+                whichAvatars[this.props.conversations[i]._id] = avatars[1][members[j]]
+                break;
+              } else {
+                whichAvatars[this.props.conversations[i]._id] = avatars[0][members[j]]
+                break;
+              }
+            }
+          }
+        }
+      }
+
     }
+
+
+    console.log(sender)
     return (
       <div>
-        {!this.props.loading && this.state.focused === '' ? this.props.conversations.map((obj) => (
-          <ListItem leftAvatar={<Avatar src='/images/splash.jpg' />}
+        {!this.props.loading && this.state.focused === '' && this.props.params.conversationId === undefined ? this.props.conversations.map((obj) => (
+
+          <ListItem leftAvatar={
+              obj.type == 'group' ?
+              <Avatar icon={<FontIcon className="fa fa-users fa-2x" />}/>
+              :
+            <Avatar src={whichAvatars[obj._id] ? whichAvatars[obj._id] : '/images/splash.jpg' }/>
+            }
             primaryText={Pledges.findOne({_id: obj.pledgeId}) ? Pledges.findOne({_id: obj.pledgeId}).title + ' - ' + obj.group : ''}
-            secondaryText={Messages.find({pledgeId: obj.pledgeId, group: obj.group}, {sort: {time: -1}, limit: 1}).fetch()[0].text}
-            onTouchTap={this.handleConvoClick.bind(this, obj.pledgeId, obj.group, obj._id)}
+            secondaryText={Messages.find({conversationId: obj._id}, {sort: {time: -1}, limit: 1}).fetch()[0].text}
+            onTouchTap={this.handleConvoClick.bind(this, obj.pledgeId, obj.group, obj._id, obj.type, obj)}
+             rightAvatar={Counts.get(obj._id) > 0 ? <Avatar
+               color='white'
+                               backgroundColor='#1251BA'
+                size={30}
+>
+                {Counts.get(obj._id)}</Avatar> : null}
             />
-        )) : !this.props.loading && this.state.focused !== '' ?
+        )) : !this.props.loading && (this.state.focused !== '' || this.props.params.conversationId !== undefined) ?
         <div>
           <ListItem
             innerDivStyle={{paddingLeft: '96px'}}
-            leftAvatar={<div style={{left: '0px'}}>
+            leftAvatar={<div onTouchTap={this.handleBackClick} style={{left: '0px'}}>
             <IconButton
                 iconStyle={styles.smallIcon}
                 style={styles.small}
               >
                 <ArrowBack />
             </IconButton>
-            <Avatar style={{verticalAlign: 'inherit'}} src='/images/splash.jpg' />
+            <Avatar style={{verticalAlign: 'inherit'}} src={senderAvatar ? senderAvatar : '/images/splash.jpg'} />
 
               </div>}
-            primaryText={Pledges.findOne({_id: this.state.focused.id}).title}
-            onTouchTap={this.handleBackClick}
+            primaryText={
+              this.state.focused.type === 'group' ?
+              Pledges.findOne({_id: Conversations.findOne({_id: this.props.params.conversationId}).pledgeId}).title :
+              sender
+            }
+
+            rightIcon={<IconButton
+              style={{padding: '0px'}}
+              onTouchTap={this.handleSettingsClick} >
+              <MoreVert/>
+          </IconButton>}
             />
 
           <div>
           <div ref='box' style={{height: 'calc(100vh - 160px)', overflowY: 'scroll'}}>
 
-            {Messages.find({pledgeId: this.state.focused.id, group: this.state.focused.group}).fetch().map((message) => (
+            {Messages.find({conversationId: this.props.params.conversationId}).fetch().map((message) => (
               <div >
                 <div style={styles.blocker}>
                 <div style={message.sender === Meteor.userId() ? styles.yourMessage : styles.theirMessage}>
+                  {this.state.focused.type === 'group' ? <p style = {styles.dateText}>{Meteor.users.findOne({_id: message.sender}).profile.name}</p> :null}
                   {message.text}
                   <p style = {styles.dateText}>{dateTimeFormat(message.time)}</p>
                 </div>
@@ -278,6 +384,20 @@ componentDidUpdate() {
             </div>
           </div>
 
+          <Popover
+            open={this.state.open}
+           anchorEl={this.state.anchorEl}
+           anchorOrigin={{horizontal: 'left', vertical: 'bottom'}}
+           targetOrigin={{horizontal: 'left', vertical: 'top'}}
+           onRequestClose={this.handleRequestClose}
+         >
+           <Menu>
+             {this.state.focused.type === 'group' ?
+             <MenuItem primaryText="View Group Info"  onTouchTap={this.handleGroupInfo}/> :
+               <MenuItem primaryText="View Contact Info"  onTouchTap={this.handleContactInfo.bind(this, senderId)}/>}
+           </Menu>
+         </Popover>
+
         </div>
         : null
         }
@@ -294,13 +414,15 @@ Messaging.propTypes = {
 export default createContainer(({params}) => {
   const subscriptionHandler = Meteor.subscribe('myMessages')
   const messageHandler = Meteor.subscribe('myConversations')
-  const pledgeHandler = Meteor.subscribe("myPledges")
+  const pledgeHandler = Meteor.subscribe("myPledges");
+  const countHandler = Meteor.subscribe("unreadMessages")
+  const pledgeUserHandler = Meteor.subscribe("conversationUsers", params.conversationId);
 
   return {
-    loading: !subscriptionHandler.ready() || !pledgeHandler.ready() || !messageHandler.ready(),
+    loading: !subscriptionHandler.ready() || !pledgeHandler.ready() || !messageHandler.ready() ||
+    !pledgeUserHandler.ready() || !countHandler.ready(),
     messages: Messages.find({}).fetch(),
-    conversations: Conversations.find({}).fetch(),
+    conversations: Conversations.find({}, {sort: {lastMessage: -1}, limit: 15}).fetch(),
     slimMessages: Messages.find({}, {fields: {pledgeId: 1, group: 1}}).fetch(),
-    pledges: distinct(Messages, 'pledgeId')
   }
 }, Messaging)

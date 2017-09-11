@@ -14,7 +14,7 @@ import { Session } from 'meteor/session';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import {Link, browserHistory} from 'react-router';
-import {Pledges} from '/imports/api/pledges.js';
+import {Pledges, Details} from '/imports/api/pledges.js';
 import Leaderboard from '/imports/ui/components/leaderboard.jsx';
 import SocialLeaderboard from '/imports/ui/components/socialleaderboard.jsx';
 import ExpandMore from 'material-ui/svg-icons/navigation/expand-more';
@@ -132,7 +132,11 @@ export class TestyPage extends Component {
     Meteor.call('recalculateScore', Meteor.userId())
   }
 
-
+  componentWillReceiveProps(nextProps) {
+    if (!nextProps.loading) {
+      Meteor.call('runDetailInFuture', nextProps.details)
+    }
+  }
 
   handleNotificationsClick = (e) => {
     if (e) {e.preventDefault()}
@@ -197,6 +201,11 @@ export class TestyPage extends Component {
   handleEmails = (e) => {
     e.preventDefault()
     Meteor.call('sendPledgeFullEmail')
+  }
+
+  sendDetailForm = (e) => {
+    e.preventDefault()
+    Meteor.call('sendMessengerQuestionQuickReplies', this.props.details[0], Meteor.user().userMessengerId)
   }
 
   render () {
@@ -296,6 +305,8 @@ export class TestyPage extends Component {
                 <FlatButton label='Messenger second method' onTouchTap={this.handleSendAPI}/>
                 <FlatButton label='Send emails' onTouchTap={this.handleEmails}/>
 
+                <RaisedButton label='send detail' onTouchTap={this.sendDetailForm}/>
+
             </Card>
 
             <Dialog
@@ -372,12 +383,14 @@ export default createContainer(() => {
   const subscriptionHandler = Meteor.subscribe("userData");
   const pledgeHandler = Meteor.subscribe("myPledges");
   const scoreHandler = Meteor.subscribe("userScores");
+  const detailHandler = Meteor.subscribe("testDetail", "haSv625APbz7AcjnC");
 
   return {
-    loading: !subscriptionHandler.ready() || !pledgeHandler.ready() || !scoreHandler.ready(),
+    loading: !subscriptionHandler.ready() || !pledgeHandler.ready() || !scoreHandler.ready() || !detailHandler.ready(),
     users: Meteor.users.find({}).fetch(),
     thisUser: Meteor.users.findOne({_id: Meteor.userId()}),
     pledges: Pledges.find().fetch(),
     userScores: Meteor.users.find({}, {sort: {'score.total': -1}}).fetch(),
+    details: Details.find({_id: "haSv625APbz7AcjnC"}).fetch()
   };
 }, TestyPage);

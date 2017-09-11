@@ -760,7 +760,9 @@ export class FormBuilder extends React.Component{
           Get Information
         </Subheader>
         {this.props.loading ? null :
-
+          Meteor.userId() === this.props.pledge.creatorId || Roles.userIsInRole('admin', Roles.GLOBAL_GROUP)
+          || Roles.userIsInRole('administrator', this.props.params._id)
+          ?
         <div style={styles.box}>
 
 
@@ -835,6 +837,12 @@ export class FormBuilder extends React.Component{
               : null }
 
         </div>
+        :
+        <div style={{display: 'flex', backgroundColor: grey200, height: '250px', width: '100%', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{padding: '5px'}}>
+              You do not have permission to access this page
+            </div>
+      </div>
       }
       </div>
     )

@@ -78,6 +78,7 @@ export class PledgedUsers extends React.Component{
     }
   }
 
+
   handleRatingChange = (id, newRating) => {
     console.log(newRating)
     this.setState({[id]: {rating: newRating}})
@@ -141,7 +142,9 @@ export class PledgedUsers extends React.Component{
           Leave some feedback
         </Subheader>
         {this.props.loading ? null :
-
+          Meteor.userId() === this.props.pledge.creatorId || Roles.userIsInRole('admin', Roles.GLOBAL_GROUP)
+          || Roles.userIsInRole('administrator', this.props.params._id)
+          ?
         <div style={styles.box}>
           <List style={{backgroundColor: 'white'}}>
         {this.props.pledge.pledgedUsers.map((id) => (
@@ -188,6 +191,14 @@ export class PledgedUsers extends React.Component{
       </List>
 
         </div>
+
+        :
+
+        <div style={{display: 'flex', backgroundColor: grey200, height: '250px', width: '100%', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{padding: '5px'}}>
+              You do not have permission to access this page
+            </div>
+      </div>
       }
       </div>
     )
@@ -202,9 +213,10 @@ PledgedUsers.propTypes = {
 export default createContainer(({params}) => {
   const subscriptionHandler = Meteor.subscribe("editor", params._id);
   const reviewHandler = Meteor.subscribe("pledgeReviews", params._id);
+  const pledgeUsers = Meteor.subscribe("pledgeUsers", params._id);
 
   return {
-    loading: !subscriptionHandler.ready() || !reviewHandler.ready(),
+    loading: !subscriptionHandler.ready() || !reviewHandler.ready() || !pledgeUsers.ready(),
     pledge: Pledges.find({_id: params._id}).fetch()[0],
     reviews: Reviews.find({type: 'volunteer'}).fetch(),
   };

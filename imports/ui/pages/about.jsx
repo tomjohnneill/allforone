@@ -10,7 +10,7 @@ const styles={
   subheader: {
     paddingLeft: '0px',
     fontSize: '14pt',
-    color: '#006699',
+    color: '#1251BA',
     fontFamily: 'Love Ya Like A Sister',
     paddingTop: '20px'
   },

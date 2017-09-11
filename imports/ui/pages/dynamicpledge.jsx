@@ -1,6 +1,6 @@
 import React , {PropTypes} from 'react';
 import { createContainer } from 'meteor/react-meteor-data';
-import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
+import {grey200, grey500, grey100, amber500, grey300} from 'material-ui/styles/colors'
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
 import RaisedButton from 'material-ui/RaisedButton';
 import LinearProgress from 'material-ui/LinearProgress';
@@ -122,7 +122,7 @@ const styles = {
     padding: 30,
   },
   number: {
-    color: '#006699',
+    color: '#1251BA',
     fontSize: '20px',
 
   },
@@ -398,15 +398,25 @@ export class DynamicPledge extends React.Component {
 
 
   render () {
-
-
+    var tabLength = 2
+    if (!this.props.loading) {
+      console.log(this.props.details)
+      if (this.props.pledge.stripe && this.props.pledge.stripe.plans) {
+        tabLength += 1
+      }
+      if (this.props.details && this.props.details.length > 0) {
+        console.log(this.props.details)
+        tabLength += 1
+      }
+    }
+    console.log('Tab Length: ' + tabLength)
 
     var inkBarLeft = this.refs.tabs ? this.refs.tabs.state.selectedIndex : 0 * 50 + 20
 
     return (
       <div>
         <Link to='/pages/pledges'>
-        <div style={{display: 'flex' ,backgroundColor: grey500, color: 'white'}}>
+        <div style={{display: 'flex' ,backgroundColor: grey300, color: 'white'}}>
                   <IconButton
             iconStyle={styles.smallIcon}
             style={styles.small}
@@ -414,7 +424,7 @@ export class DynamicPledge extends React.Component {
             <ArrowBack />
           </IconButton>
 
-        <div style={{width: '100%', paddingLeft: '16px', backgroundColor: grey500, color: 'white', alignItems: 'center', display: 'flex'}}>
+        <div style={{width: '100%', paddingLeft: '16px', backgroundColor: grey300, color: 'white', alignItems: 'center', display: 'flex'}}>
 
           BACK TO PLEDGES
         </div>
@@ -426,7 +436,7 @@ export class DynamicPledge extends React.Component {
         <CircularProgress/>
         </div> :
           <DocumentTitle title={this.props.pledge.title}>
-        <div style={styles.box}>
+
           <Card>
             {this.props.pledge.creatorId === Meteor.userId() || Roles.userIsInRole(Meteor.userId(), 'admin') ?
               <div>
@@ -485,7 +495,7 @@ export class DynamicPledge extends React.Component {
                         {dateDiffInDays(new Date(),this.props.pledge.deadline)}
                       </div>
                       <div style={styles.bottomBit}>
-                        days to go
+                        days to go...
                       </div>
                     </div>
                   </div>
@@ -513,7 +523,9 @@ export class DynamicPledge extends React.Component {
 
                 </div>
                 <div style={styles.explanation}>
-                  <p style={{textAlign: 'center'}}>You need to click this button so we can send you a message once your pledge is approved.</p>
+                  <p style={{textAlign: 'center'}}>
+                    Click this button to receive a message when the pledge reaches its target
+                  </p>
                 </div>
                 </div>
               </div>
@@ -542,9 +554,11 @@ export class DynamicPledge extends React.Component {
                 </div>
             </div>}
 
+            {/*
             <div style={{color: 'rgba(0, 0, 0, 0.54)', padding: '16px', fontSize: '14px'}}>
               All or nothing - either all {this.props.pledge.target} of us, or none of us do this.
             </div>
+            */}
             <Divider/>
 
 
@@ -553,8 +567,8 @@ export class DynamicPledge extends React.Component {
               style={{overflowX: 'hidden'}}
               onChange={this.handleConsoleLog}
               tabTemplateStyle={{backgroundColor: 'white'}}
-              inkBarStyle={{left: (this.state.selectedIndex) * 25 + 5 + '%', backgroundColor: '#006699'
-                , zIndex: 2, width: '15%'}}
+              inkBarStyle={{left: (this.state.selectedIndex) * (100/tabLength) + 5 + '%', backgroundColor: '#1251BA'
+                , zIndex: 2, width: 100/tabLength - 10 +  '%'}}
               children={<Divider/>}
               >
               <Tab
@@ -571,6 +585,7 @@ export class DynamicPledge extends React.Component {
 
                 </CardText>
               </Tab>
+              {this.props.details && this.props.details.length > 0 ?
               <Tab
                 buttonStyle={{textTransform: 'none', color: 'rgba(0, 0, 0, 0.54)', backgroundColor: 'white',
                                 }}
@@ -585,7 +600,7 @@ export class DynamicPledge extends React.Component {
 
 
 
-              </Tab>
+              </Tab> : null}
               <Tab
                 buttonStyle={{textTransform: 'none', color: 'rgba(0, 0, 0, 0.54)', backgroundColor: 'white',
                                 }}
@@ -599,6 +614,7 @@ export class DynamicPledge extends React.Component {
                 </div>
               </Tab>
 
+              {this.props.pledge.stripe && this.props.pledge.stripe.plans ?
               <Tab
                 buttonStyle={{textTransform: 'none', color: 'rgba(0, 0, 0, 0.54)', backgroundColor: 'white',
                                 }}
@@ -610,7 +626,7 @@ export class DynamicPledge extends React.Component {
                       pledgeId={this.props.params._id}/>
 
                 </div>
-              </Tab>
+              </Tab> : null}
             </Tabs>
 
 
@@ -619,7 +635,7 @@ export class DynamicPledge extends React.Component {
             </CardActions>
           </Card>
 
-        </div>
+
       </DocumentTitle >
       }
       {/*
@@ -664,12 +680,13 @@ export default createContainer(({params}) => {
   const subscriptionHandler = Meteor.subscribe('editor', params._id);
   const userHandler = Meteor.subscribe('userData', params._id);
   const userFriends = Meteor.subscribe('userFriends');
-  const details = Meteor.subscribe('details', params._id);
+  const detailHandler = Meteor.subscribe('details', params._id);
+  const reviewHandler = Meteor.subscribe('pledgeReviews', params._id);
 
   return {
-    loading: !subscriptionHandler.ready(),
+    loading: !subscriptionHandler.ready() || !reviewHandler.ready() || !detailHandler.ready(),
     pledge: Pledges.findOne({_id: params._id}),
-    details: Details.findOne({_id: params._id}),
+    details: Details.find({pledgeId: params._id}).fetch(),
     user: Meteor.users.find({_id: Meteor.userId()}, {fields: {_id: 1, 'friends': 1, 'justAddedPledge': 1, 'userMessengerId': 1}}).fetch()[0]
   }
 }, DynamicPledge)
