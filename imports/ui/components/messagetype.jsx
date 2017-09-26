@@ -45,8 +45,8 @@ export class MessageType extends React.Component {
                 <IconButton tooltip='Use Facebook Messenger'
                   >
                  <FontIcon
-                   color = {this.state.messenger ? '#006699' : grey200}
-                   className="fa fa-facebook-official fa-2x" style={{color: '#006699'}}
+                   color = {this.state.messenger ? '#FF9800' : grey200}
+                   className="fa fa-facebook-official fa-2x" style={{color: '#FF9800'}}
                    />
                </IconButton>
              </Badge>
@@ -62,8 +62,8 @@ export class MessageType extends React.Component {
               <IconButton tooltip='Use Push Notifications (not on iPhone)'
                 >
                 <FontIcon
-                  color = {this.state.push ? '#006699' : grey200}
-                  className="fa fa-bell fa-2x" style={{color: '#006699'}}
+                  color = {this.state.push ? '#FF9800' : grey200}
+                  className="fa fa-bell fa-2x" style={{color: '#FF9800'}}
                       />
               </IconButton>
               </Badge>
@@ -79,8 +79,8 @@ export class MessageType extends React.Component {
                   <IconButton tooltip='Use Email'
                     >
                     <FontIcon
-                      color = {this.state.email ? '#006699' : grey200}
-                      className="fa fa-envelope-o fa-2x" style={{color: '#006699'}}
+                      color = {this.state.email ? '#FF9800' : grey200}
+                      className="fa fa-envelope-o fa-2x" style={{color: '#FF9800'}}
                      />
                    </IconButton>
                 </Badge>
@@ -97,8 +97,8 @@ export class MessageType extends React.Component {
               <IconButton tooltip='Use SMS'
                 >
              <FontIcon tooltip='Use SMS'
-               color = {this.state.sms ? '#006699' : grey200}
-               className="fa fa-comment fa-2x" style={{color: '#006699'}}
+               color = {this.state.sms ? '#FF9800' : grey200}
+               className="fa fa-comment fa-2x" style={{color: '#FF9800'}}
                  />
                </IconButton>
                </Badge>
@@ -115,8 +115,8 @@ export class MessageType extends React.Component {
               <IconButton tooltip='Use All For One'
                 >
              <FontIcon
-               color = {this.state.allforone ? '#006699' : grey200}
-               className="fa fa-home fa-2x" style={{color: '#006699'}}
+               color = {this.state.allforone ? '#FF9800' : grey200}
+               className="fa fa-home fa-2x" style={{color: '#FF9800'}}
                  />
                </IconButton>
                </Badge>
@@ -139,8 +139,8 @@ export class MessageType extends React.Component {
                 <IconButton tooltip='Use Facebook Messenger'
                   >
                  <FontIcon
-                   color = {this.state.messenger ? '#006699' : grey200}
-                   className="fa fa-facebook-official fa-2x" style={{color: '#006699'}}
+                   color = {this.state.messenger ? '#FF9800' : grey200}
+                   className="fa fa-facebook-official fa-2x" style={{color: '#FF9800'}}
                    />
                </IconButton>
              </Badge>
@@ -156,8 +156,8 @@ export class MessageType extends React.Component {
               <IconButton tooltip='Use Push Notifications (not on iPhone)'
                 >
                 <FontIcon
-                  color = {this.state.push ? '#006699' : grey200}
-                  className="fa fa-bell fa-2x" style={{color: '#006699'}}
+                  color = {this.state.push ? '#FF9800' : grey200}
+                  className="fa fa-bell fa-2x" style={{color: '#FF9800'}}
                       />
               </IconButton>
               </Badge>
@@ -173,8 +173,8 @@ export class MessageType extends React.Component {
                   <IconButton tooltip='Use Email'
                     >
                     <FontIcon
-                      color = {this.state.email ? '#006699' : grey200}
-                      className="fa fa-envelope-o fa-2x" style={{color: '#006699'}}
+                      color = {this.state.email ? '#FF9800' : grey200}
+                      className="fa fa-envelope-o fa-2x" style={{color: '#FF9800'}}
                      />
                    </IconButton>
                 </Badge>
@@ -191,8 +191,8 @@ export class MessageType extends React.Component {
               <IconButton tooltip='Use SMS'
                 >
              <FontIcon tooltip='Use SMS'
-               color = {this.state.sms ? '#006699' : grey200}
-               className="fa fa-comment fa-2x" style={{color: '#006699'}}
+               color = {this.state.sms ? '#FF9800' : grey200}
+               className="fa fa-comment fa-2x" style={{color: '#FF9800'}}
                  />
                </IconButton>
                </Badge>
@@ -209,8 +209,8 @@ export class MessageType extends React.Component {
               <IconButton tooltip='Use All For One'
                 >
              <FontIcon
-               color = {this.state.allforone ? '#006699' : grey200}
-               className="fa fa-home fa-2x" style={{color: '#006699'}}
+               color = {this.state.allforone ? '#FF9800' : grey200}
+               className="fa fa-home fa-2x" style={{color: '#FF9800'}}
                  />
                </IconButton>
                </Badge>

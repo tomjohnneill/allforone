@@ -60,7 +60,7 @@ export class Badges extends Component {
 
   renderBoard() {
     console.log(this.props.myCreatedPledges)
-    var primary = '#006699'
+    var primary = '#FF9800'
     var secondary = '#996699'
     var user = this.props.user
     var createdPledges = []

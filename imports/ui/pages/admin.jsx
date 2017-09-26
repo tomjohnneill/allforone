@@ -86,7 +86,7 @@ export class Admin extends React.Component{
   constructor(props) {
     super(props);
     console.log(this.props)
-    this.state = {preferences: [], pledge: {}, dataSource: [], list: [], refinedList:[], pledges: []}
+    this.state = {preferences: [], pledge: {}, dataSource: [], list: [], refinedList:[], pledges: [], visible: '', counter: 0}
   }
 
   componentWillReceiveProps(nextProps) {
@@ -163,6 +163,37 @@ export class Admin extends React.Component{
 
   handleApprove = (e) => {
     Meteor.call('approvePledges', this.state.pledges)
+  }
+
+  handleReject = (e) => {
+    Meteor.call('rejectPledges', this.state.pledges)
+  }
+
+  handleApproveOnePledge = (e) => {
+    Meteor.call('approvePledges', [this.props.pendingPledges[this.state.counter]._id])
+  }
+
+  handleRejectOnePledge = (e) => {
+    Meteor.call('rejectPledges', [this.props.pendingPledges[this.state.counter]._id])
+  }
+
+  handleNext = (e) => {
+    e.preventDefault()
+    let counter = this.state.counter
+    this.setState({visible: this.props.pendingPledges[counter+1]._id})
+    this.setState({counter: counter + 1})
+  }
+
+  handleBack = (e) => {
+    e.preventDefault()
+    let counter = this.state.counter
+    this.setState({visible: this.props.pendingPledges[counter-1]._id})
+    this.setState({counter: counter - 1})
+  }
+
+  handleViewFirstPledge = (e) => {
+    e.preventDefault()
+    this.setState({visible: this.props.pendingPledges[0]._id})
   }
 
   render() {
@@ -248,7 +279,24 @@ export class Admin extends React.Component{
         <div>
           <div>
             <RaisedButton label='Approve pledges' onTouchTap={this.handleApprove}/>
-                {this.props.pledges.map((pledge) => (
+            <RaisedButton label='Reject pledges' onTouchTap={this.handleReject}/>
+            <RaisedButton label='View Pledges' onTouchTap={this.handleViewFirstPledge}/>
+              {this.props.loading ? <div/> :
+                  <Card>
+                    <CardText >
+                      {this.props.pendingPledges[this.state.counter].title}
+                      <div style={{backgroundColor: 'red'}}></div>
+                      {this.props.pendingPledges[this.state.counter].description}
+                      <RaisedButton label='Back' onTouchTap={this.handleBack}/>
+                      <RaisedButton label='Next' onTouchTap={this.handleNext}/>
+                      <RaisedButton label='Approve' onTouchTap={this.handleApproveOnePledge}/>
+                      <RaisedButton label='Reject' onTouchTap={this.handleRejectOnePledge}/>
+                    </CardText>
+                  </Card>
+                }
+
+
+                {this.props.pendingPledges.map((pledge) => (
                   <ListItem primaryText={pledge.title}
                     rightToggle={<Toggle onToggle={this.handleAddPledge.bind(this, pledge._id)}/>}/>
                 ))}
@@ -293,6 +341,8 @@ export default createContainer(({params}) => {
   return {
     loading: !subscriptionHandler.ready() || !pledgeHandler.ready(),
     pledges: Pledges.find({}).fetch(),
+    pendingPledges: Pledges.find({approved: {$ne: true}, rejected: {$ne: true}}).fetch(),
+    acceptedPledges: Pledges.find({approved: true}).fetch(),
     users: Meteor.users.find({_id: Meteor.userId()}).fetch(),
   };
 }, Admin);

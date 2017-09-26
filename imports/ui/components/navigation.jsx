@@ -1,6 +1,7 @@
 import React, {PropTypes} from 'react';
 import { createContainer } from 'meteor/react-meteor-data';
 import { IndexLink, Link, browserHistory } from 'react-router';
+import {grey200, grey500, grey100, amber500, blue200} from 'material-ui/styles/colors';
 import Paper from 'material-ui/Paper';
 import Menu from 'material-ui/Menu';
 import MenuItem from 'material-ui/MenuItem';
@@ -22,6 +23,7 @@ import TextField from 'material-ui/TextField';
 import Settings from 'material-ui/svg-icons/action/settings';
 import { ServiceConfiguration } from 'meteor/service-configuration';
 import InfoOutline from 'material-ui/svg-icons/action/info';
+import MessagingButton from '/imports/ui/components/messagingbutton.jsx';
 
 import globalStyles from '/client/main.css';
 
@@ -36,7 +38,8 @@ const style = {
   margin: '16px 32px 16px 0',
   title: {
     cursor: 'pointer',
-    fontFamily: 'Love Ya Like A Sister',
+    fontFamily: 'Permanent Marker',
+    color: '#FF9800',
     fontSize: '30px',
     marginRight: '15px',
     width: '100px'
@@ -44,7 +47,8 @@ const style = {
   appBar: {
     margin: '0px',
     boxShadow: null,
-    paddingLeft: '16px'
+    paddingLeft: '16px',
+    backgroundColor: 'white'
   },
   otherAnchor :{
     float: 'right',
@@ -90,7 +94,7 @@ export default class Navigation extends React.Component {
     super(props);
     this.state = {open: false, changePasswordOpen: false};
     this.logout = this.logout.bind(this);
-    console.log(this.state)
+
   }
 
   componentDidMount() {
@@ -140,8 +144,7 @@ export default class Navigation extends React.Component {
 
   handleTitleTap(event) {
     event.preventDefault();
-    console.log('Should have gone to home page here')
-    console.log(location.pathname)
+
     browserHistory.push('/')
   }
 
@@ -214,8 +217,47 @@ export default class Navigation extends React.Component {
     browserHistory.push('/analytics')
   }
 
+  handleNewPledge = (e) => {
+    console.log('handleNewPledge fired')
+    if (e) {
+      e.preventDefault()
+    }
+    console.log('handleNewPledge fired second')
+    Meteor.call( 'newPledge', ( error, pledgeId ) => {
+      if ( error ) {
+        Bert.alert( error.reason, 'danger' );
+      } else {
+
+        Meteor.call('findPledgeSlug', pledgeId, (error, pledgeSlug) => {
+          if (error) {
+            Bert.alert(error.reason, "Can't find pledge slug")
+          } else {
+          browserHistory.push( `/pages/pledges/${ pledgeSlug }/${ pledgeId }/edit` );
+          Bert.alert( 'All set! Get to typin\'', 'success' );
+        }
+        })
+      }
+    })
+  }
+
+  handleCreatePledge = (e) => {
+    e.preventDefault()
+    if (Meteor.userId() === null) {
+      mixpanel.track("Clicked create account")
+      Meteor.loginWithFacebook({ requestPermissions: ['email', 'public_profile', 'user_friends']},function(error, result) {
+        if (error) {
+            console.log("facebook login didn't work at all")
+            Bert.alert(error.reason, 'danger')
+        }
+    })
+  }
+    else {
+      this.handleNewPledge(e)
+    }
+  }
+
   renderLayout() {
-    console.log(this.state)
+
   return(
 
       <div>
@@ -224,17 +266,25 @@ export default class Navigation extends React.Component {
           showMenuIconButton={false}
           style={style.appBar}
           iconElementRight={
-                            <div>
-                            <IconButton tooltip='Messaging' onTouchTap={this.handleAboutClick}>
-                              <MessageIcon color={'white'}/>
-                            </IconButton>
+                            <div style={{display: 'flex', alignItems: 'center'}}>
+                            <MediaQuery minDeviceWidth = {700}>
+                              <RaisedButton
+                                style={{height: '36px', marginRight: '16px', boxShadow: ''}} primary={true} overlayStyle={{height: '36px'}}
+                                buttonStyle={{height: '36px'}}
+                                 labelStyle={{height: '36px', display: 'flex', alignItems: 'center',
+                                      letterSpacing: '0.6px', fontWeight: 'bold'}}
+                                 label='Start a Pledge' onTouchTap={this.handleCreatePledge}/>
+                            </MediaQuery>
+                            <MessagingButton handleClick={this.handleAboutClick}/>
                             <IconButton tooltip='Settings' onTouchTap={this.handleSettingsClick}>
-                            <Settings color='white'/>
+                            <Settings color={'#484848'}/>
                             </IconButton>
                             </div>}
           title={
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <span onTouchTap ={this.handleTitleTap.bind(this)}  className = 'idle' style={style.title}>ALL FOR ONE</span>
+            <span onTouchTap ={this.handleTitleTap.bind(this)}  className = 'idle' style={style.title}>
+              Who's In?
+            </span>
 
             </div>
           }

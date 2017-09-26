@@ -7,13 +7,14 @@ import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
 
 const muiTheme = getMuiTheme({
   palette: {
-    primary1Color: '#006699',
-    primary2Color:  '#CCCCCC',
-    accent1Color: ' #996699',
+    primary1Color: '#FF9800',
+    primary2Color:  '#FF9800',
+    accent1Color: '#0068B2',
   },
   appBar: {
     height: 50,
   },
+  fontFamily: 'Raleway, Roboto'
 });
 
 export const App = ( { children } ) => (
@@ -21,11 +22,11 @@ export const App = ( { children } ) => (
   <div>
   <MediaQuery minDeviceWidth={700}>
 
-  <div style={{backgroundImage: 'url(/images/topography.png)', display: 'flex', flexDirection: 'column',display: '-webkit-flex',
+  <div style={{display: 'flex', flexDirection: 'column',display: '-webkit-flex',
     WebkitFlexDirection: 'column'
     , alignItems: 'center'}}>
-  <div style={{ maxWidth: '600px', width: '100%' , backgroundColor: 'white'
-    , marginTop: '24px', marginBottom: '24px', minHeight: '90vh'}} >
+  <div style={{ width: '100%' , backgroundColor: 'white',
+     marginBottom: '24px', minHeight: '90vh'}} >
     <Navigation />
     { children }
 

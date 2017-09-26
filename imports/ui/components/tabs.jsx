@@ -1,6 +1,6 @@
 import React , {PropTypes} from 'react';
 import { createContainer } from 'meteor/react-meteor-data';
-import {grey200, grey500, grey100} from 'material-ui/styles/colors';
+import {grey200, grey500, grey100, amber50} from 'material-ui/styles/colors';
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
 import RaisedButton from 'material-ui/RaisedButton';
 import LinearProgress from 'material-ui/LinearProgress';
@@ -16,6 +16,32 @@ import SwipeableViews from 'react-swipeable-views';
 import Subheader from 'material-ui/Subheader';
 import Loadable from 'react-loadable';
 import Support from '/imports/ui/pages/support.jsx';
+import MessengerPlugin from 'react-messenger-plugin';
+
+const styles = {
+  selectedTab: {
+    height: '36px',
+    backgroundColor: 'white',
+    color: '#0068B2',
+    fontWeight: 700,
+    fontSize: '12px',
+    letterSpacing: '0.4px',
+    lineHeight: '16px',
+    fontFamily: 'Roboto',
+    width: '100px'
+  },
+  tab: {
+    height: '36px',
+    fontFamily: 'Roboto',
+    backgroundColor: 'white',
+    color: '#484848',
+    fontWeight: 700,
+    fontSize: '12px',
+    letterSpacing: '0.4px',
+    lineHeight: '16px',
+    width: '100px'
+  }
+}
 
 const Loading = () => (
   <div/>
@@ -47,7 +73,7 @@ handleChange(value) {
   });
   };
 
-handleTabClick(value) {
+handleTabClick = (value) => {
   mixpanel.track("Clicked on " + value + ' tab')
   var lookup = ['pledges','profile','community']
   browserHistory.push('/pages/' + value)
@@ -57,7 +83,7 @@ handleTabClick(value) {
   });
   };
 
-handleTwoTabClick(value) {
+handleTwoTabClick = (value) => {
   mixpanel.track("Clicked on " + value + ' tab')
   var lookup = ['pledges','community']
   browserHistory.push('/pages/' + value)
@@ -94,24 +120,30 @@ handleClose = () => this.setState({open: false});
     }
   }
 
+
+
   render() {
 
     return(
       <div>
       {Meteor.userId() !== null ?
         <div>
+
         <Tabs
-          tabItemContainerStyle={{height: '36px'}}
+          style={{borderBottom: '1px solid #e4e4e4', boxShadow: '0 1px 5px rgba(0, 0, 0, 0.1) '}}
+          tabItemContainerStyle={{height: '36px', backgroundColor: 'white'}}
             value={this.props.params.tab}
-            onChange={this.handleTabClick.bind(this)}
+            onChange={this.handleTabClick}
+            inkBarStyle={{zIndex: 2, backgroundColor: '#0068B2',
+            left:this.state.slideIndex * 100 + 20 + 'px', width: '60px'}}
           >
-            <Tab label="Pledges"  buttonStyle={{height: '36px'}} value="pledges"/>
-            <Tab label="Profile" buttonStyle={{height: '36px'}} value="profile"/>
-            <Tab label="Community" buttonStyle={{height: '36px'}} value="community"/>
+            <Tab label="Pledges"  buttonStyle={this.props.params.tab === 'pledges' || !this.props.params.tab ? styles.selectedTab : styles.tab} style={{width: '100px'}} value="pledges"/>
+            <Tab label="Profile" buttonStyle={this.props.params.tab === 'profile' ? styles.selectedTab : styles.tab} style={{width: '100px'}} value="profile"/>
+            <Tab label="Community" buttonStyle={this.props.params.tab === 'community' ? styles.selectedTab : styles.tab}style={{width: '100px'}}  value="community"/>
           </Tabs>
 
           <SwipeableViews
-            animateHeight={true}
+            
           index={this.state.slideIndex}
           onChangeIndex={this.handleChange.bind(this)}
         >
@@ -135,19 +167,23 @@ handleClose = () => this.setState({open: false});
            :
            <div>
         <Tabs
-          tabItemContainerStyle={{height: '36px'}}
+          tabItemContainerStyle={{height: '36px', backgroundColor: 'white', borderBottom: '1px solid #e4e4e4', boxShadow: '0 1px 5px rgba(0, 0, 0, 0.1) '}}
+          style={{backgroundColor: 'white'}}
             value={this.props.params.tab}
             onChange={this.handleTwoTabClick.bind(this)}
+            inkBarStyle={{zIndex: 2, backgroundColor: '#0068B2',
+            left:this.state.slideIndex * 100 + 20 + 'px', width: '60px'}}
           >
-            <Tab label="Pledges"  buttonStyle={{height: '36px'}} value="pledges">
+            <Tab label="Pledges"   buttonStyle={this.props.params.tab === 'pledges' || !this.props.params.tab ? styles.selectedTab : styles.tab} style={{width: '100px'}} value="pledges">
               <div>
                 <PledgeList hidden={this.props.params.tab !== 'pledges'}/>
               </div>
             </Tab>
-            <Tab label="Community" buttonStyle={{height: '36px'}} value="community">
+            <Tab label="Community"  buttonStyle={this.props.params.tab === 'community' ? styles.selectedTab : styles.tab} style={{width: '100px'}} value="community">
               <div>
 
                   <Support hidden={true}/>
+
 
                 <div style={{height: '36px'}}/>
               </div>

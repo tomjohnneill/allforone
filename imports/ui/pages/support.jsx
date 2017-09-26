@@ -195,13 +195,15 @@ export default class Support extends React.Component{
               </i> Processing payment...
             </p>
           :
-            <div style={{padding: '16px'}}>
+            <div style={{display: 'flex', justifyContent: 'center'}}>
+            <div style={{padding: '16px', width: '100%', maxWidth: '800px'}}>
               <p className="alert alert-warning">
                 If you think our projects are a good idea, we'd really appreciate it if you'd help us cover our running costs for a few pounds per month.
               </p>
               <div style={{display: 'flex', width: '100%', justifyContent: 'center'}}>
               <RaisedButton primary={true} label ='Support All For One' onTouchTap={this.open}/>
               </div>
+            </div>
             </div>
           }
 

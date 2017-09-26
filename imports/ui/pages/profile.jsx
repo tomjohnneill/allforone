@@ -35,6 +35,7 @@ import TextField from 'material-ui/TextField'
 import Email from 'material-ui/svg-icons/communication/email';
 import SMS from 'material-ui/svg-icons/communication/textsms';
 import Loadable from 'react-loadable';
+import MediaQuery from 'react-responsive';
 
 const Loading = () => (
   <div/>
@@ -47,10 +48,13 @@ const ProfilePledgesLoadable = Loadable({
 
 const styles = {
   box: {
-    backgroundColor: grey200,
-    marginTop: '10px',
+    backgroundImage: 'url(/images/blu_stripes.png)',
+
     marginBottom: '10px',
-    padding: '10px'
+
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
   },
   header: {
     backgroundColor: 'white',
@@ -394,6 +398,11 @@ export class Profile extends Component {
         </div>
        :
           <div style={styles.box}>
+            <div style={{width: '900px'}}>
+            <img src="/images/landscape.jpg" style={{width: '100%', height: 'auto'}}/>
+            </div>
+            
+            <div style={{maxWidth: '700px'}}>
             <Card>
               <CardHeader
                   title={this.props.thisUser.profile.name}
@@ -442,7 +451,8 @@ export class Profile extends Component {
                       onKeyPress={this.handleKeypress}
                       onChange={this.handleChangeEmail} defaultValue={this.props.thisUser.profile.email?
                         this.props.thisUser.profile.email
-                        : this.props.thisUser.services.facebook.email}/>}
+                        : this.props.thisUser.services.facebook ?
+                          this.props.thisUser.services.facebook.email : ''}/>}
                     >
                   </ListItem>
                   <ListItem
@@ -531,14 +541,14 @@ export class Profile extends Component {
                   <div style={{paddingLeft: '16px', color: grey500, fontStyle: 'italic'}}>
                     Get more friends to join, or sign up to more pledges to increase your score</div>
                   <div style={{padding: '16px'}}>
-                    <Tabs tabItemContainerStyle={{backgroundColor: '#1251BA', height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>
-                      <Tab label='Your friends' buttonStyle={{backgroundColor: '#1251BA',height: '36px'}}>
+                    <Tabs tabItemContainerStyle={{backgroundColor: '#FF9800', height: '36px'}} contentContainerStyle={{backgroundColor: grey100, padding: '10px'}}>
+                      <Tab label='Your friends' buttonStyle={{backgroundColor: '#FF9800',height: '36px'}}>
                         <SocialLeaderboard/>
                       </Tab>
-                      <Tab label='Everyone' buttonStyle={{backgroundColor: '#1251BA',height: '36px'}}>
+                      <Tab label='Everyone' buttonStyle={{backgroundColor: '#FF9800',height: '36px'}}>
                         <Leaderboard/>
                       </Tab>
-                      <Tab label='Your score' buttonStyle={{backgroundColor: '#1251BA',height: '36px'}}>
+                      <Tab label='Your score' buttonStyle={{backgroundColor: '#FF9800',height: '36px'}}>
                         <div style={{backgroundColor: 'white', padding: '10px'}}>
                           {this.props.thisUser.score ?
                             <div>
@@ -616,6 +626,7 @@ export class Profile extends Component {
 
           </div>
             </Dialog>
+            </div>
           </div> }
           </DocumentTitle>
 

@@ -47,22 +47,24 @@ Meteor.methods({
 
 Meteor.methods({
   createSubscriptionPlan: function(amount, planName) {
-    var Stripe = StripeAPI(Meteor.settings.private.stripe.secretKey)
-    var cleanPlanName = getSlug(planName, {custom: {"'":""}})
-    console.log(cleanPlanName)
-    var plan = Stripe.plans.create({
-      name: planName,
-      id: cleanPlanName,
-      interval: "month",
-      currency: "gbp",
-      amount: amount * 100,
-    }, function(err, plan) {
-      if (err) {
-        console.log(err)
-      } else {
-        console.log(plan)
-      }
-    });
+        if (Roles.userIsInRole(this.userId, ['administrator','admin'], pledgeId)) {
+      var Stripe = StripeAPI(Meteor.settings.private.stripe.secretKey)
+      var cleanPlanName = getSlug(planName, {custom: {"'":""}})
+      console.log(cleanPlanName)
+      var plan = Stripe.plans.create({
+        name: planName,
+        id: cleanPlanName,
+        interval: "month",
+        currency: "gbp",
+        amount: amount * 100,
+      }, function(err, plan) {
+        if (err) {
+          console.log(err)
+        } else {
+          console.log(plan)
+        }
+      });
+    }
   }
 })
 
@@ -120,6 +122,8 @@ Meteor.methods({
 
 Meteor.methods({
   'findStripeConnectId' : function(code, pledgeId) {
+    console.log(code)
+    console.log(pledgeId)
     var Stripe = StripeAPI(Meteor.settings.private.stripe.secretKey)
     var options = {
       url: 'https://connect.stripe.com/oauth/token',
@@ -143,39 +147,41 @@ Meteor.methods({
 
 Meteor.methods({
   'addPlanToPledge' : function(amount, planName, pledgeId) {
-    var stripe_user_id = Pledges.findOne({_id: pledgeId}).stripe.stripe_user_id
-    var Stripe = StripeSync(Meteor.settings.private.stripe.secretKey)
-    var adjustedAmount = amount * 100
-    var cleanPlanName = getSlug(planName, {custom: {"'":""}})
+    if (Roles.userIsInRole(this.userId, ['administrator','admin'], pledgeId)) {
+      var stripe_user_id = Pledges.findOne({_id: pledgeId}).stripe ?
+        Pledges.findOne({_id: pledgeId}).stripe.stripe_user_id : Meteor.user().stripeCustomerId
+      var Stripe = StripeSync(Meteor.settings.private.stripe.secretKey)
+      var adjustedAmount = amount * 100
+      var cleanPlanName = getSlug(planName, {custom: {"'":""}})
 
-    var mySubscription = {
-    customerInfo: {
-        stripe_account: stripe_user_id
-    },
-    plan: {
-        amount: adjustedAmount,
-        interval: "month",
-        name: planName,
-        id: cleanPlanName
-      }
-    };
+      var mySubscription = {
+      customerInfo: {
+          stripe_account: stripe_user_id
+      },
+      plan: {
+          amount: adjustedAmount,
+          interval: "month",
+          name: planName,
+          id: cleanPlanName
+        }
+      };
 
-    try{
-      var plan = Stripe.plans.create({
+      try{
+        var plan = Stripe.plans.create({
 
-      amount: mySubscription.plan.amount,
-      interval: mySubscription.plan.interval,
-      name: mySubscription.plan.name,
-      currency: "gbp",
-      id: mySubscription.plan.id
-    },{stripe_account: stripe_user_id})
-    Pledges.update({_id: pledgeId}, {$addToSet: {'stripe.plans' : mySubscription.plan}})
-      }
-      catch(error){
-          throw new Meteor.Error(1001, error.message);
-      }
+        amount: mySubscription.plan.amount,
+        interval: mySubscription.plan.interval,
+        name: mySubscription.plan.name,
+        currency: "gbp",
+        id: mySubscription.plan.id
+      },{stripe_account: stripe_user_id})
+      Pledges.update({_id: pledgeId}, {$addToSet: {'stripe.plans' : mySubscription.plan}})
+        }
+        catch(error){
+            throw new Meteor.Error(1001, error.message);
+        }
 
-
+    }
 
   }
 })

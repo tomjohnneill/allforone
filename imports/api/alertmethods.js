@@ -427,14 +427,14 @@ Meteor.methods({
       if (res.response.statusCode == 200) {
         var apps = JSON.parse(res.body)
         var appId = apps.data[0].id
-        console.log(appId)
+
 
         if (appId) {
           console.log("Successfully got appId %s",
             appId);
           Meteor.users.update({'services.facebook.id': appId}, {$set: {userMessengerId: senderId}})
         } else {
-        console.log(body);
+
         }
       }
     } catch(error) {
@@ -462,12 +462,12 @@ Meteor.methods({
               'url': url // where to go if user clicks on notification
           }
       };
-      console.log(options)
+
 
       HTTP.call('POST', 'https://onesignal.com/api/v1/notifications', options, function(error, result) {
     // Process t1he return for any ids that were not recognised to remove them from our database
           if (result && result.data && result.data.errors && result.data.errors.invalid_player_ids) {
-            console.log(result)
+            
               result.data.errors.invalid_player_ids.forEach(playerId => {
                   Meteor.users.update({oneSignalUserId: playerId}, {$pull: {oneSignalUserId: playerId}});
               });

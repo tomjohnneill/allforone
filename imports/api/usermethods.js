@@ -49,31 +49,31 @@ if (Meteor.isServer) {
   Meteor.publish('messageTypeCounts', function(pledgeId, groupName) {
     var lookupString = 'roles.' + pledgeId
     Counts.publish(this, 'oneSignalCount', Meteor.users.find({
-      committedPledges: {$elemMatch: {_id: pledgeId}}
+      "committedPledges._id":  pledgeId
       , [lookupString] : groupName
       , OneSignalUserId : {$exists : true}
       }))
 
     Counts.publish(this, 'messengerCount', Meteor.users.find({
-      committedPledges: {$elemMatch: {_id: pledgeId}}
+      "committedPledges._id":  pledgeId
       , [lookupString] : groupName
       , userMessengerId : {$exists : true}
       }))
 
     Counts.publish(this, 'emailCount', Meteor.users.find({
-      committedPledges: {$elemMatch: {_id: pledgeId}}
+      "committedPledges._id":  pledgeId
       , [lookupString] : groupName
       , 'profile.email' : {$exists : true}
       }))
 
     Counts.publish(this, 'smsCount', Meteor.users.find({
-      committedPledges: {$elemMatch: {_id: pledgeId}}
+      "committedPledges._id":  pledgeId
       , [lookupString] : groupName
       , 'profile.phone' : {$exists : true}
       }))
 
       Counts.publish(this, 'allforoneCount', Meteor.users.find({
-        committedPledges: {$elemMatch: {_id: pledgeId}}
+        "committedPledges._id":  pledgeId
         , [lookupString] : groupName
         }))
 
@@ -82,27 +82,27 @@ if (Meteor.isServer) {
   Meteor.publish('everyoneMessageTypeCounts', function(pledgeId) {
     var lookupString = 'roles.' + pledgeId
     Counts.publish(this, 'allOneSignalCount', Meteor.users.find({
-      committedPledges: {$elemMatch: {_id: pledgeId}}
+      "committedPledges._id":  pledgeId
       , OneSignalUserId : {$exists : true}
       }))
 
     Counts.publish(this, 'allMessengerCount', Meteor.users.find({
-      committedPledges: {$elemMatch: {_id: pledgeId}}
+      "committedPledges._id":  pledgeId
       , userMessengerId : {$exists : true}
       }))
 
     Counts.publish(this, 'allEmailCount', Meteor.users.find({
-      committedPledges: {$elemMatch: {_id: pledgeId}}
+      "committedPledges._id":  pledgeId
       , 'profile.email' : {$exists : true}
       }))
 
     Counts.publish(this, 'allSmsCount', Meteor.users.find({
-      committedPledges: {$elemMatch: {_id: pledgeId}}
+      "committedPledges._id":  pledgeId
       , 'profile.phone' : {$exists : true}
       }))
 
       Counts.publish(this, 'allAllForOneCount', Meteor.users.find({
-        committedPledges: {$elemMatch: {_id: pledgeId}}
+        "committedPledges._id":  pledgeId
         }))
   })
 
@@ -112,17 +112,22 @@ if (Meteor.isServer) {
 }
 
 
+
+
 Accounts.onCreateUser(function(options, user) {
     if (options.profile) {
         options.profile.picture = "https://graph.facebook.com/" + user.services.facebook.id + "/picture/?type=large";
         user.profile = options.profile;
         user.justAddedPledge = true
+    } else {
+      user.profile = {name: options.name}
     }
     return user;
 });
 
-Accounts.onLogin(function(user){
+Accounts.onLogin(function(){
   Meteor.call('addVisit')
+
 });
 
 Meteor.methods({
@@ -146,10 +151,82 @@ Meteor.methods({
 })
 
 Meteor.methods({
+  addName: function(name) {
+    Meteor.users.update({_id: this.userId}, {$set: {
+      'profile.name' : name
+    }})
+  }
+})
+
+Meteor.methods({
   changeUserRole: function(list, role) {
     if (this.userId === 'msfgNtu67nrevfX6c' || this.userId === 'p6ZQiT9b7iWKcyL9D' || Roles.userIsInRole(this.userId, 'admin')) {
       Roles.addUsersToRoles(list, role, Roles.GLOBAL_GROUP)
     }
+  }
+})
+
+Meteor.methods({
+  whosGotEmail: function(ids) {
+    this.unblock()
+      var emailArray = {}
+      console.log(ids)
+      for (var i = 0; i<ids.length; i++) {
+        if (Meteor.users.findOne({_id: ids[i]._id}).profile.email) {
+          emailArray[ids[i]._id] = true
+        } else {
+          emailArray[ids[i]._id] = false
+        }
+      }
+      return emailArray
+  }
+})
+
+Meteor.methods({
+  whosGotSMS: function(ids) {
+    this.unblock()
+      var smsArray = {}
+      console.log(ids)
+      for (var i = 0; i<ids.length; i++) {
+        if (Meteor.users.findOne({_id: ids[i]._id}).profile.phone) {
+          smsArray[ids[i]._id] = true
+        } else {
+          smsArray[ids[i]._id] = false
+        }
+      }
+      return smsArray
+  }
+})
+
+Meteor.methods({
+  whosGotOneSignal: function(ids) {
+    this.unblock()
+      var oneSignalArray = {}
+      console.log(ids)
+      for (var i = 0; i<ids.length; i++) {
+        if (Meteor.users.findOne({_id: ids[i]._id}).oneSignalUserId) {
+          oneSignalArray[ids[i]._id] = true
+        } else {
+          oneSignalArray[ids[i]._id] = false
+        }
+      }
+      return oneSignalArray
+  }
+})
+
+Meteor.methods({
+  whosGotMessenger: function(ids) {
+    this.unblock()
+      var messengerArray = {}
+      console.log(ids)
+      for (var i = 0; i<ids.length; i++) {
+        if (Meteor.users.findOne({_id: ids[i]._id}).userMessengerId) {
+          messengerArray[ids[i]._id] = true
+        } else {
+          messengerArray[ids[i]._id] = false
+        }
+      }
+      return messengerArray
   }
 })
 

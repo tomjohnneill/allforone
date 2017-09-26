@@ -5,6 +5,7 @@ import { Pledges, Details, Responses, GroupCriteria } from '/imports/api/pledges
 import { PledgeVisits } from '/imports/api/pledges.js';
 import { ValidatedMethod } from 'meteor/mdg:validated-method';
 import {SimpleSchema} from 'meteor/aldeed:simple-schema';
+import {callSendAPI} from '/imports/api/alertmethods.js';
 
 var geoip = require('geoip-lite');
 var parser = require('ua-parser-js');
@@ -106,55 +107,136 @@ Meteor.methods({
 
 Meteor.methods({
   saveGroupCriteria: function(details, locationChoice, geojson, filters, pledgeId, name) {
-    console.log(details)
-    console.log(locationChoice)
-    console.log(geojson)
+    if (Roles.userIsInRole(this.userId, 'administrator', pledgeId) || Roles.userIsInRole(this.userId, 'admin')) {
+      console.log(details)
+      console.log(locationChoice)
+      console.log(geojson)
 
-    GroupCriteria.upsert({name: name, pledgeId: pledgeId}, {$set: {
-      details: details,
-      locationChoice: locationChoice,
-      geojson: geojson,
-      pledgeId, pledgeId
-    }})
+      GroupCriteria.upsert({name: name, pledgeId: pledgeId}, {$set: {
+        details: details,
+        locationChoice: locationChoice,
+        geojson: geojson,
+        filters: filters,
+        pledgeId, pledgeId
+      }})
+    }
   }
 })
 
 Meteor.methods({
-  addUsersToPledgeGroup: function(userIds, groupName, pledgeId) {
+  recalculateGroupMembers: function(groupName, pledgeId) {
+    this.unblock()
     var roleName = groupName
-    Roles.addUsersToRoles(userIds, roleName, pledgeId)
+    var criteria = GroupCriteria.findOne({name: groupName, pledgeId: pledgeId})
+    var users = []
+    var overallUsers
+    if (criteria.geojson.features.length > 0 && criteria.filters.length) {
+      Meteor.call('findMatching', criteria.geojson, criteria.locationChoice, pledgeId, (err, result) => {
+        if (err) {
+          console.log(err.reason)
+        } else {
+          for (var i in result) {
+            users.push(result[i].userId)
+          }
+          Meteor.call('findRelevantUsers', criteria.filters, criteria.details, (err, response) => {
+            if (err) {
+              console.log(err.reason)
+            } else {
+              overallUsers = users.filter(function(n) {
+                return response.indexOf(n) !== -1;
+              });
+              Meteor.call('addUsersToPledgeGroup', overallUsers, groupName, pledgeId)
+            }
+          })
+        }
+      })
+    } else if (criteria.filters.length) {
+        console.log('second option')
+        Meteor.call('findRelevantUsers', criteria.filters, criteria.details, (err, response) => {
+          if (err) {
+            console.log(err.reason)
+          } else {
+            console.log(response)
+            if (users.length > 0) {
+              overallUsers = users.filter(function(n) {
+                return response.indexOf(n) !== -1;
+              });
+            } else {
+              overallUsers = response
+            }
+            console.log(overallUsers)
+            console.log(roleName)
+            console.log(pledgeId)
+            Meteor.call('addUsersToPledgeGroup', overallUsers, roleName, pledgeId)
+          }
+        })
+      } else {
+        console.log('third option')
+        Meteor.call('findMatching', criteria.geojson, criteria.locationChoice, pledgeId, (err, result) => {
+          if (err) {
+            console.log(err.reason)
+          } else {
+            for (var i in result) {
+              overallUsers.push(result[i].userId)
+            }
+            console.log(overallUsers)
+            Meteor.call('addUsersToPledgeGroup', overallUsers, groupName, pledgeId)
+          }
+        })
+      }
+
+
+
+
+    }
+})
+
+
+
+Meteor.methods({
+  addUsersToPledgeGroup: function(userIds, groupName, pledgeId) {
+    if (Roles.userIsInRole(this.userId, 'administrator', pledgeId) || Roles.userIsInRole(this.userId, 'admin')) {
+      var roleName = groupName
+      if (roleName === 'admin' || roleName === 'administrator') {
+        throw new Meteor.error(405, 'Error 405: Method Not Allowed', 'This group name is not allowed')
+      }
+      Roles.addUsersToRoles(userIds, roleName, pledgeId)
+    }
   }
 })
 
 Meteor.methods({
   saveQuestions: function(pledgeId, data) {
-    var idList = []
-    for (var j in data) {
-      idList.push(data[j].id ? data[j].id : data[j]._id)
-    }
+    if (Roles.userIsInRole(this.userId, 'administrator', pledgeId) || Roles.userIsInRole(this.userId, 'admin')) {
 
-    console.log(idList)
+      var idList = []
+      for (var j in data) {
+        idList.push(data[j].id ? data[j].id : data[j]._id)
+      }
 
-    Details.remove({pledgeId: pledgeId, _id: {$nin: idList}})
+      console.log(idList)
 
-    for (var i in data) {
-      var id = data[i].id ? data[i].id : data[i]._id
-      if (id.length > 10) {
-        Details.update({_id: id}, {$set:
-          {pledgeId: pledgeId,
+      Details.remove({pledgeId: pledgeId, _id: {$nin: idList}})
+
+      for (var i in data) {
+        var id = data[i].id ? data[i].id : data[i]._id
+        if (id.length > 10) {
+          Details.update({_id: id}, {$set:
+            {pledgeId: pledgeId,
+            type: data[i].type,
+            question: data[i].question,
+            options: data[i].options}
+          }
+          )
+        } else {
+        Details.insert({
+          pledgeId: pledgeId,
           type: data[i].type,
           question: data[i].question,
-          options: data[i].options}
-        }
-        )
-      } else {
-      Details.insert({
-        pledgeId: pledgeId,
-        type: data[i].type,
-        question: data[i].question,
-        options: data[i].options
-      })
-    }
+          options: data[i].options
+        })
+      }
+      }
     }
   }
 })
@@ -181,6 +263,83 @@ Meteor.methods({
 })
 
 Meteor.methods({
+  runDetailInFuture: function(details) {
+    var userId = this.userId
+    var userMessengerId = Meteor.users.findOne({_id: this.userId}).userMessengerId
+    for (var i in details) {
+      Meteor.setTimeout(() => {
+         Meteor.call('sendMessengerQuestionQuickReplies', details[i], userMessengerId, userId)
+      }, 0.1 * 60 * 1000);
+    }
+  }
+})
+
+Meteor.methods({
+  updateDetailFromMessenger: function(senderId, postback) {
+    console.log(senderId)
+
+    console.log(postback)
+    var user = Meteor.users.findOne({userMessengerId: senderId})
+
+    var parts = postback.split(':AnSwEr:')
+    console.log(parts[0])
+    console.log(parts[1])
+    Details.update({
+      _id: parts[0]
+    }, {$pull :{
+      members: {userId: user._id}
+    }})
+
+    Details.update({
+        _id: parts[0]
+            }, {$addToSet: {
+        members: {userId: user._id, response: parts[1]}
+      }})
+
+    Responses.upsert({detailId: parts[0], userId: user._id}, {$set:
+    {
+      detailId: parts[0],
+      userId: user._id,
+      value: parts[1]
+    }})
+  }
+})
+
+Meteor.methods({
+  sendMessengerQuestionQuickReplies: function(detail, recipientId, userId) {
+    console.log(detail)
+    var userResponse = Responses.findOne({userId: userId, detailId: detail._id})
+    console.log("Detail ID: "+ detail._id)
+    console.log("User ID: "+ userId)
+    console.log(userResponse)
+    if (!userResponse) {
+      var quickReplies = []
+      for (var i =0; i<detail.options.length; i++) {
+        console.log(detail.options[i])
+        quickReplies.push({
+          content_type: "text",
+          "title": detail.options[i],
+          "payload": detail._id + ':AnSwEr:' + detail.options[i]
+        })
+      }
+
+      var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        message: {
+          text: detail.question,
+          "quick_replies":quickReplies
+        }
+      }
+      console.log(messageData)
+      callSendAPI(messageData)
+    }
+
+  }
+})
+
+Meteor.methods({
   addUserUpload: function(url, pledgeId) {
     Pledges.update({_id: pledgeId}, {$addToSet: {
       uploads: {userId: this.userId, upload: url}
@@ -197,6 +356,10 @@ if (Meteor.isServer) {
     return Details.find({pledgeId: pledgeId})
   });
 
+  Meteor.publish("responsesByUserAndPledge", function(pledgeId) {
+    return Responses.find({pledgeId: pledgeId, userId: this.userId})
+  })
+
   Meteor.publish("random", function() {
     return Details.find({hi: "hi"})
   })
@@ -212,7 +375,7 @@ if (Meteor.isServer) {
   Meteor.publish("pledgeList", function () {
     return Pledges.find({title: {$ne: 'Untitled Pledge'}}
     , {fields: {_id : 1, title: 1, slug : 1, creatorPicture : 1, target : 1, pledgedUsers : 1
-      , pledgeCount: 1, coverPhoto: 1, creatorId: 1, duration: 1, deadline: 1}}
+      , pledgeCount: 1, coverPhoto: 1, creatorId: 1, duration: 1, deadline: 1, approved: 1, rejected: 1}}
     )
   })
 
@@ -237,15 +400,25 @@ if (Meteor.isServer) {
       )
   })
 
+  Meteor.publish("pledgeTitles", function(userId) {
+    return Pledges.find({creatorId: userId}, {
+      fields: {title: 1}
+    })
+  })
+
   Meteor.publish("pledgeUsers", function(pledgeId) {
     var pledge = Pledges.findOne({_id: pledgeId})
-    return Meteor.users.find({pledgedUsers: {$in : pledge.pledgedUsers}}, {
-      fields: {_id: 1, OneSignalUserId: 1, userMessengerId: 1, profile: 1, geo: 1, roles: 1}
+    return Meteor.users.find({_id: {$in : pledge.pledgedUsers}}, {
+      fields: {_id: 1, 'geo.country': 1, roles: 1, 'profile.name': 1, 'profile.picture': 1}
     })
   })
 
   Meteor.publish("myCreatedPledges", function() {
     return Pledges.find({creatorId: this.userId})
+  })
+
+  Meteor.publish("testDetail", function(id) {
+    return Details.find({_id: id})
   })
 }
 
@@ -275,18 +448,36 @@ Meteor.methods({
 })
 
 Meteor.methods({
-  findMatching: function(json, locationChoice, pledgeId) {
-    var geoJSON = json.features[0].geometry
+  rejectPledges: function(pledgeArray) {
 
-    if (locationChoice !== 'user') {
-      var details = Responses.find( { 'value.location': { $geoWithin: { $geometry: geoJSON } } }, {
-        fields: {userId: 1}
-      } ).fetch()
-      return (details)
-    } else {
-      var userIds = Meteor.users.find({geo: {$geoWithin : {$geometry : geoJSON}},
-        committedPledges: pledgeId}).fetch()
-      return (userIds)
+    if (Roles.userIsInRole(this.userId, 'admin')) {
+      console.log(pledgeArray)
+      for (var i in pledgeArray) {
+        Pledges.update({_id: pledgeArray[i]}, {$set: {
+          approved: false,
+          rejected: true
+        }})
+        console.log(Pledges.findOne({_id: pledgeArray[i]}))
+      }
+    }
+  }
+})
+
+Meteor.methods({
+  findMatching: function(json, locationChoice, pledgeId) {
+    if (Roles.userIsInRole(this.userId, 'administrator', pledgeId) || Roles.userIsInRole(this.userId, 'admin')) {
+      var geoJSON = json.features[0].geometry
+
+      if (locationChoice !== 'user') {
+        var details = Responses.find( { 'value.location': { $geoWithin: { $geometry: geoJSON } } }, {
+          fields: {userId: 1}
+        } ).fetch()
+        return (details)
+      } else {
+        var userIds = Meteor.users.find({geo: {$geoWithin : {$geometry : geoJSON}},
+          committedPledges: pledgeId}).fetch()
+        return (userIds)
+      }
     }
   }
 })
@@ -392,21 +583,26 @@ Meteor.methods({
 
 Meteor.methods({
   addPictureToPledge(downloadUrl, pledgeId) {
-    console.log(downloadUrl)
-    this.unblock()
-    if(this.userId)
-    Pledges.update({_id: pledgeId}, {
-      $set : {coverPhoto: downloadUrl}
-    })
+    var pledge = Pledges.findOne({_id: pledgeId})
+    if (Roles.userIsInRole(this.userId, 'administrator', pledgeId) || Roles.userIsInRole(this.userId, 'admin') || pledge.creatorId === this.userId) {
+      console.log(downloadUrl)
+      this.unblock()
+      if(this.userId)
+      Pledges.update({_id: pledgeId}, {
+        $set : {coverPhoto: downloadUrl}
+      })
+    }
   }
 });
 
 Meteor.methods({
   savePledge( pledge ) {
     check( pledge, Object );
-    if (pledge.creatorId === this.userId || Roles.userIsInRole(this.userId, 'admin')) {
+    if (pledge.creatorId === this.userId || Roles.userIsInRole(this.userId, 'admin') || Roles.userIsInRole(this.userId, 'administrator', pledge._id)) {
     let pledgeId = pledge._id;
     Pledges.upsert( pledgeId, { $set: pledge } );
+    Meteor.users.update({_id: this.userId}, {$addToSet: {committedPledges: pledgeId}})
+    Roles.addUsersToRoles(this.userId, 'administrator', pledgeId)
   } else {
     throw new Meteor.Error(500, 'Error 500: Not found', 'you did not create this pledge')
   }
@@ -446,7 +642,7 @@ Meteor.methods({
 let PledgeSchema = new SimpleSchema({
   "creator": {
     type: String,
-    label: "The ID of the creator of this pledge.",
+    label: "The name of the creator of this pledge.",
     autoValue() {
       if (this.isInsert) {
       let user = Meteor.users.findOne({_id:this.userId});
@@ -462,8 +658,10 @@ let PledgeSchema = new SimpleSchema({
     autoValue() {
       if (this.isInsert) {
       let user = Meteor.users.findOne({_id:this.userId});
-      if (user) {
+      if (user && user.profile.picture) {
         return user.profile.picture;
+      } else {
+        return '/images/favicon.ico'
       }
     }
     }
@@ -521,6 +719,11 @@ let PledgeSchema = new SimpleSchema({
         return false
       }
     }
+  },
+  "rejected": {
+    type: Boolean,
+    label: "Has this pledge been rejected?",
+    optional: true
   },
   "stripe": {
     type: Object,
@@ -778,11 +981,11 @@ function htmlString(pledge) {
               &#13;
                   <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
             <div class="btn btn--flat btn--medium" style="margin-bottom: 20px; text-align: center; line-height: inherit;" align="center">&#13;
-              <a style="border-radius: 4px; display: inline-block; font-size: 12px; font-weight: bold; line-height: 22px; text-align: center; text-decoration: none !important; transition: opacity 0.1s ease-in; color: #ffffff !important; font-family: Avenir, sans-serif; background-color: #006699; padding: 10px 20px;"
+              <a style="border-radius: 4px; display: inline-block; font-size: 12px; font-weight: bold; line-height: 22px; text-align: center; text-decoration: none !important; transition: opacity 0.1s ease-in; color: #ffffff !important; font-family: Avenir, sans-serif; background-color: #FF9800; padding: 10px 20px;"
               href="https://www.allforone.io/pages/pledges/` +
               pledge.slug + '/' + pledge._id +
               `">Go to pledge</a>&#13;
-            <!--[if mso]><p style="line-height:0;margin:0;">&nbsp;</p><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="http://www.example.com" style="width:114px" arcsize="10%" fillcolor="#006699" stroke="f"><v:textbox style="mso-fit-shape-to-text:t" inset="0px,9px,0px,9px"><center style="font-size:12px;line-height:22px;color:#FFFFFF;font-family:Avenir,sans-serif;font-weight:bold;mso-line-height-rule:exactly;mso-text-raise:4px">Go to pledge</center></v:textbox></v:roundrect><![endif]--></div>&#13;
+            <!--[if mso]><p style="line-height:0;margin:0;">&nbsp;</p><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="http://www.example.com" style="width:114px" arcsize="10%" fillcolor="#FF9800" stroke="f"><v:textbox style="mso-fit-shape-to-text:t" inset="0px,9px,0px,9px"><center style="font-size:12px;line-height:22px;color:#FFFFFF;font-family:Avenir,sans-serif;font-weight:bold;mso-line-height-rule:exactly;mso-text-raise:4px">Go to pledge</center></v:textbox></v:roundrect><![endif]--></div>&#13;
           </div>&#13;
               &#13;
                   <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
@@ -1364,7 +1567,7 @@ Meteor.methods({
   'deletePledge' (_id) {
     if (this.userId) {
       var pledge = Pledges.findOne({_id: _id})
-      if (pledge.creatorId === this.userId || Roles.userIsInRole(this.userId, 'admin')) {
+      if (pledge.creatorId === this.userId || Roles.userIsInRole(this.userId, 'admin') || Roles.userIsInRole(this.userId, 'administrator', pledge._id)) {
         committedUsers = pledge.pledgedUsers
         for (var index in committedUsers) {
           let user = Meteor.users.findOne({_id: committedUsers[index]})

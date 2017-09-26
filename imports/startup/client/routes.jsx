@@ -101,6 +101,7 @@ Meteor.startup( () => {
         <Route path='/testypage' component={TestyPage}/>
         <Route path='/privacypolicy' component={PrivacyPolicyLoadable}/>
         <Route path='/messages' component={MessagesLoadable}/>
+        <Route path='/messages/:conversationId' component={MessagesLoadable}/>
         <Route path='/admin/:adminTab' component={AdminLoadable}/>
         <Route path='/emailadmin' component={EmailAdmin}/>
         <Route path='/:pledgeId/project' component={Project}/>

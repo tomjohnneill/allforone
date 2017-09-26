@@ -17,6 +17,7 @@ import MoreVert from 'material-ui/svg-icons/navigation/more-vert';
 import Menu from 'material-ui/Menu';
 import MenuItem from 'material-ui/MenuItem';
 import Popover from 'material-ui/Popover';
+import Subheader from 'material-ui/Subheader';
 
 const styles = {
   smallIcon: {
@@ -169,13 +170,13 @@ export class Messaging extends React.Component {
 
   componentDidMount() {
   var objDiv = ReactDOM.findDOMNode(this.refs.box);
-  console.log(objDiv)
+
   objDiv.scrollTop = objDiv.scrollHeight;
 }
 
 componentDidUpdate() {
   var objDiv = ReactDOM.findDOMNode(this.refs.box);
-  console.log(objDiv)
+
   objDiv.scrollTop = objDiv.scrollHeight;
 }
 
@@ -253,17 +254,17 @@ componentDidUpdate() {
     var sender, senderId, senderAvatar
     if (!this.props.loading) {
       var conversation = Conversations.findOne({_id: this.props.params.conversationId})
-      if ((this.state.focused || this.props.params.conversationId) && conversation.type !== 'group') {
+      if ((this.state.focused || this.props.params.conversationId) && this.state.type !== 'group') {
         var members = conversation.members
         for (var i = 0; i < members.length; i++) {
           console.log(members[i])
           console.log(Meteor.userId())
           if (members[i] !== Meteor.userId()) {
-            console.log(members[i])
+            console.log('Members[i]: ' + members[i])
 
-            console.log(Meteor.users.findOne({_id: members[i]}))
+            console.log('User that matches members[i]:' + Meteor.users.findOne({_id: members[i]})._id)
             sender = Meteor.users.findOne({_id: members[i]}) ? Meteor.users.findOne({_id: members[i]}).profile.name : null
-            console.log(sender)
+            console.log('Sender: ' + sender)
             senderId = members[i]
             if (sender !== null) {
               senderAvatar = Meteor.users.findOne({_id: members[i]}).profile.picture
@@ -278,26 +279,38 @@ componentDidUpdate() {
         if (this.props.conversations[i].type !== 'group') {
           var avatars = this.props.conversations[i].avatars ? this.props.conversations[i].avatars : []
           var members = this.props.conversations[i].members ? this.props.conversations[i].members : []
-          for (var j =0; j<members.length ; j++) {
+          for (var j =0; j< members.length ; j++) {
             if (members[j] !== Meteor.userId()) {
               if (avatars[0] && !avatars[0][members[j]] && members[j] !== Meteor.userId()) {
-                whichAvatars[this.props.conversations[i]._id] = avatars[1][members[j]]
+                whichAvatars[this.props.conversations[i]._id] = avatars[1] ? avatars[1][members[j]] : null
                 break;
               } else {
-                whichAvatars[this.props.conversations[i]._id] = avatars[0][members[j]]
+                whichAvatars[this.props.conversations[i]._id] = avatars[0] ? avatars[0][members[j]] : null
                 break;
               }
             }
           }
         }
       }
-
+      
     }
 
 
-    console.log(sender)
+    console.log('Sender: ' + sender)
+
+
+
+    //console.log('PledgeId: ' + Conversations.findOne({_id: this.props.params.conversationId}))
+
+    //Pledges.findOne({_id: Conversations.findOne({_id: this.props.params.conversationId}).pledgeId})
+
     return (
-      <div>
+      <div style={{display: 'flex', justifyContent: 'center'}}>
+      <div style={{maxWidth: '800px', width: '100%'}}>
+        <Subheader style={{fontSize: '25px', letterSpacing: '-0.6px', lineHeight: '30px', color: '#484848',
+        fontWeight: 700, marginTop: '24px', marginBottom: '24px', paddingLeft: '16px', fontFamily: 'Raleway'}}>
+          Your messages
+        </Subheader>
         {!this.props.loading && this.state.focused === '' && this.props.params.conversationId === undefined ? this.props.conversations.map((obj) => (
 
           <ListItem leftAvatar={
@@ -311,7 +324,7 @@ componentDidUpdate() {
             onTouchTap={this.handleConvoClick.bind(this, obj.pledgeId, obj.group, obj._id, obj.type, obj)}
              rightAvatar={Counts.get(obj._id) > 0 ? <Avatar
                color='white'
-                               backgroundColor='#1251BA'
+                               backgroundColor='#FF9800'
                 size={30}
 >
                 {Counts.get(obj._id)}</Avatar> : null}
@@ -331,8 +344,9 @@ componentDidUpdate() {
 
               </div>}
             primaryText={
-              this.state.focused.type === 'group' ?
-              Pledges.findOne({_id: Conversations.findOne({_id: this.props.params.conversationId}).pledgeId}).title :
+              this.state.focused.type === 'group'  && Pledges.findOne({_id: Conversations.findOne({_id: this.props.params.conversationId}).pledgeId}) ?
+
+               Pledges.findOne({_id: Conversations.findOne({_id: this.props.params.conversationId}).pledgeId}).title :
               sender
             }
 
@@ -401,6 +415,7 @@ componentDidUpdate() {
         </div>
         : null
         }
+      </div>
       </div>
     )
   }

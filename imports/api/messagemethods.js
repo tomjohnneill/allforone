@@ -26,9 +26,23 @@ if (Meteor.isServer) {
     })
   });
 
+  Meteor.publish("conversationUsers", function(id) {
+
+    var conversation = Conversations.findOne({_id: id})
+    if (conversation) {
+    return Meteor.users.find({_id: {$in : conversation.members}}, {
+      fields: {_id: 1, 'geo.country': 1, roles: 1, 'profile.name': 1, 'profile.picture': 1}
+    })
+    }
+    else {
+      return []
+    }
+  })
 
 
 }
+
+
 
 Meteor.methods({
   returnConversations: function() {
@@ -65,93 +79,137 @@ Meteor.methods({
 
 })
 
+Meteor.publish('allUnreadMessages', function() {
+  var userId = this.userId
+  Counts.publish(this, 'theseUnreadMessages', Messages.find({
+    seen: {$ne: userId}, receiver: userId
+  })
+)
+
+  })
+
+Meteor.publish('unreadMessages', function() {
+  var conversations = Conversations.find({members: this.userId}).fetch()
+  var userId = this.userId
+  console.log(conversations)
+  for (var i = 0; i<conversations.length; i++) {
+    console.log(i)
+    var id = conversations[i]._id
+    console.log(id)
+    Counts.publish(this, id, Messages.find({
+      conversationId: id,
+      seen: {$ne: userId}
+    }))
+  }
+
+  })
+
 Meteor.methods({
-  sendBroadcastMessage: function(groupName, pledgeId, messenger, push, email, sms, text, image, group) {
+  seenMessage: function(id) {
+    Messages.update({conversationId: id, seen: {$ne: this.userId}},
+      {$push : {
+      seen: this.userId
+    }}, {multi: true}
+  )
+  }
+})
 
-    console.log(groupName)
+Meteor.methods({
+  sendBroadcastMessage: function(groupName, pledgeId, messenger, push, email, sms, text, image, conversationType) {
+    if (Roles.userIsInRole(this.userId, 'admin', pledgeId)) {
 
-    var userIds = []
-    var userCursor
-    var filter = []
-    var autoApprove = false
+      console.log(groupName)
+      console.log(conversationType)
+      var userIds = []
+      var avatars = []
+      var userCursor
+      var filter = []
+      var autoApprove = false
 
-    if (!messenger && !push && !sms && !email) {
-      autoApprove = true
-      filter.push( {})
-    }
-
-    var methods = []
-    if (messenger) {
-      methods.push('messenger')
-      filter.push({userMessengerId: {$exists: true}})
-    }
-    if (push) {
-      methods.push('push')
-      filter.push( {oneSignalUserId: {$exists: true}})
-    }
-    if (sms) {
-      methods.push('sms')
-      filter.push({'profile.phone':{$exists: true}})
-    }
-    if (email) {
-      methods.push('email')
-      filter.push({'profile.email':{$exists: true}})
-    }
-    console.log(filter)
-
-    if (groupName === 'everyone') {
-      var rawIds = Pledges.findOne({_id: pledgeId}).pledgedUsers
-      filter._id = {$in : rawIds}
-      userCursor = Meteor.users.find({$or: filter}, {fields: {_id: 1, userMessengerId: 1, profile: 1, oneSignalUserId: 1}}).fetch()
-      for (var i in userCursor) {
-        userIds.push(userCursor[i]._id)
+      if (!messenger && !push && !sms && !email) {
+        autoApprove = true
+        filter.push( {_id: 'nooneishere'})
       }
-    } else {
-      var rawCursor = Roles.getUsersInRole ( groupName, pledgeId, {fields: {_id: 1}}).fetch()
-      console.log(rawCursor)
-      userCursor = Meteor.users.find({$or: filter, _id: {$in: rawCursor}}).fetch()
-      for (var i in userCursor) {
-        userIds.push(userCursor[i]._id)
+
+      var methods = []
+      if (messenger) {
+        methods.push('messenger')
+        filter.push({userMessengerId: {$exists: true}})
       }
-    }
+      if (push) {
+        methods.push('push')
+        filter.push( {oneSignalUserId: {$exists: true}})
+      }
+      if (sms) {
+        methods.push('sms')
+        filter.push({'profile.phone':{$exists: true}})
+      }
+      if (email) {
+        methods.push('email')
+        filter.push({'profile.email':{$exists: true}})
+      }
+      console.log(filter)
 
-    console.log(userIds)
-    var members = userIds
-    if (!members.includes(this.userId)) {
-      members.push(this.userId)
-    }
-    console.log(members)
-
-    Conversations.upsert({
-      pledgeId: pledgeId, group: groupName
-    }, {$set: {
-      members: members, pledgeId: pledgeId, group: groupName
-    }
-  }, (err, result) => {
-      if (err) {
-        console.log(err)
+      if (groupName === 'everyone') {
+        var rawIds = Pledges.findOne({_id: pledgeId}).pledgedUsers
+        filter.push({_id: {$in : rawIds}})
+        console.log(filter)
+        userCursor = Meteor.users.find({$or: filter}, {fields: {_id: 1, userMessengerId: 1, profile: 1, oneSignalUserId: 1}}).fetch()
+        for (var i in userCursor) {
+          userIds.push(userCursor[i]._id)
+          avatars.push({[userCursor[i]._id]: userCursor[i].profile.picture})
+        }
       } else {
-        var conversationId = Conversations.findOne({pledgeId: pledgeId, group: groupName})._id
-        Messages.insert({
-          pledgeId: pledgeId,
-          conversationId: conversationId,
-          sender: this.userId,
-          receiver: userIds,
-          type: 'broadcast',
-          text: text,
-          image: image,
-          method: methods,
-          time: new Date(),
-          approved: autoApprove,
-          rejected: false,
-          group: groupName
-        })
+        var rawCursor = Roles.getUsersInRole ( groupName, pledgeId, {fields: {_id: 1}}).fetch()
+        console.log(rawCursor)
+        userCursor = Meteor.users.find({$or: filter, _id: {$in: rawCursor}}).fetch()
+        for (var i in userCursor) {
+          userIds.push(userCursor[i]._id)
+          avatars.push({[userCursor[i]._id]: userCursor[i].profile.picture})
+        }
       }
-    })
+
+      console.log(userIds)
+      var members = userIds
+      if (!members.includes(this.userId)) {
+        members.push(this.userId)
+        avatars.push({[this.userId]: Meteor.user().profile.picture})
+      }
+      console.log(members)
+
+      Conversations.upsert({
+        pledgeId: pledgeId, group: groupName, type: conversationType
+      }, {$set: {
+        members: members, pledgeId: pledgeId, group: groupName, type: conversationType,
+        avatars:avatars
+      }
+    }, (err, result) => {
+        if (err) {
+          console.log(err)
+        } else {
+          var conversationId = Conversations.findOne({pledgeId: pledgeId, group: groupName, type: conversationType})._id
+          Conversations.update({_id: conversationId}, {$set: {lastMessage: new Date()}})
+          Messages.insert({
+            pledgeId: pledgeId,
+            conversationId: conversationId,
+            sender: this.userId,
+            receiver: userIds,
+            type: 'broadcast',
+            text: text,
+            image: image,
+            method: methods,
+            time: new Date(),
+            approved: autoApprove,
+            rejected: false,
+            group: groupName,
+            seen: [this.userId]
+          })
+        }
+      })
 
 
 
-
+  }
   }
 })
 
@@ -165,12 +223,8 @@ Meteor.methods({
 
 Meteor.methods({
   sendMessageReply: function(message, pledgeId, group, conversationId) {
-    var receiver = []
-    var cursor = Roles.getUsersInRole ( group, pledgeId, {fields: {_id: 1}} ).fetch()
-    for (var i = 0; i<cursor.length; i++) {
-      receiver.push(cursor[i]._id)
-    }
-
+    var receiver = Conversations.findOne({_id: conversationId}).members
+    Conversations.update({_id: conversationId}, {$set: {lastMessage: new Date()}})
     Messages.insert({
       pledgeId: pledgeId,
       conversationId: conversationId,
@@ -183,7 +237,8 @@ Meteor.methods({
       time: new Date(),
       approved: true,
       rejected: false,
-      group: group
+      group: group,
+      seen: [this.userId]
     })
   }
 })
@@ -261,10 +316,12 @@ Meteor.methods({
 })
 
 Meteor.methods({
-  addEmailReplyToThread: function(text, senderEmail, recipientEmail, threadTopic, MailgunId) {
+  addEmailReplyToThread: function(text, senderEmail, recipientEmail, threadTopic, mailgunId) {
+    console.log(mailgunId)
     console.log('Sender Email' : senderEmail)
     var sender = Meteor.users.findOne({$or: [{'profile.email' : senderEmail}, {'services.facebook.email': senderEmail}]})._id
-    var conversation = Conversations.find({mailgunIds: MailgunId }).fetch()[0]
+    var conversation = Conversations.findOne({mailgunIds: mailgunId })
+    console.log(conversation)
     var strippedText = text.replace(' Sent from Mail<https://go.microsoft.com/fwlink/?LinkId=550986> for Windows 10', '')
     var pledgeId = conversation.pledgeId
     var receiver = conversation.members
@@ -272,13 +329,14 @@ Meteor.methods({
     var pledgeTitle = Pledges.findOne({_id: pledgeId}).title
     var group = conversation.group
 
-
+    Conversations.update({_id: conversation._id}, {$set: {lastMessage: new Date()}})
     Messages.insert({
       pledgeId: pledgeId,
       sender: sender,
+      conversationId: conversation._id,
       receiver: receiver,
       type: 'reply',
-      text: text,
+      text: strippedText,
       image: null,
       method: methods,
       time: new Date(),
@@ -295,15 +353,19 @@ Meteor.methods({
     console.log(userId)
     var latestMessage = Messages.find({receiver: userId, method: 'messenger'}, {sort: {time: -1}, limit: 1}).fetch()[0]
     console.log(latestMessage)
+    var conversation = Conversations.findOne({conversationId: latestMessage.conversationId})
+    var conversationId = conversation._id
     if (latestMessage) {
       var pledgeId = latestMessage.pledgeId
       var group = latestMessage.group
-      var receiver = latestMessage.sender
+      var receiver = conversation.members
       var methods = ['messenger']
 
+      Conversations.update({_id: conversationId}, {$set: {lastMessage: new Date()}})
       Messages.insert({
         pledgeId: pledgeId,
         sender: userId,
+        conversationId: conversationId,
         receiver: receiver,
         type: 'reply',
         text: text,
@@ -313,6 +375,7 @@ Meteor.methods({
         approved: true,
         rejected: false,
         group: group,
+        seen: [userId],
       })
     }
 

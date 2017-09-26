@@ -19,6 +19,8 @@ import Dropzone from 'react-dropzone';
 import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors';
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
 import FontIcon from 'material-ui/FontIcon';
+import FormMap from '/imports/ui/components/formmap.jsx';
+
 
 export class Form extends React.Component{
   constructor(props) {
@@ -114,40 +116,60 @@ export class Form extends React.Component{
     } else {
       options.splice(options.indexOf(option), 1)
     }
+    console.log(options)
     this.setState({response: {id: id, value: options}})
   }
 
   renderStep = (item, step) => {
+    var allResponses, userResponse
+    if (item.members) {
+      allResponses = item.members.filter(function(response){
+          return response.userId == Meteor.userId();
+      });
+       userResponse = allResponses[0]
+    } else {
+      userResponse = {}
+    }
+
+    console.log(userResponse)
     if (item.type === 'text') {
+
       return (
         <Step>
           <StepLabel>{item.question}</StepLabel>
           <StepContent>
-            <TextField onChange={this.handleTextChange.bind(this, item._id)} hintText={item.question}/>
+            <TextField onChange={this.handleTextChange.bind(this, item._id)}
+              value={this.state.response && this.state.response.value ? this.state.response.value : userResponse ? userResponse.response : null}
+              hintText={item.question}/>
             {this.renderStepActions(step)}
           </StepContent>
         </Step>
 
       )
     } else if (item.type === 'checkbox') {
+      var checkedOption = userResponse ? userResponse.response : null
       return (
         <Step>
           <StepLabel>{item.question}</StepLabel>
           <StepContent>
             {item.options.map((option) => (
               <Checkbox onCheck={this.handleCheckChange.bind(this, item._id, option)}
-                  label={option}/>
+                  label={option}
+                  defaultChecked={checkedOption ? checkedOption.includes(option) : false}/>
             ))}
             {this.renderStepActions(step)}
           </StepContent>
         </Step>
       )
     } else if (item.type === 'multipleChoice') {
+      var chosenOption = userResponse ? userResponse.response : null
       return (
         <Step>
           <StepLabel>{item.question}</StepLabel>
           <StepContent>
-            <RadioButtonGroup onChange={this.handleTextChange.bind(this, item._id)}
+            <RadioButtonGroup
+              defaultSelected={chosenOption}
+              onChange={this.handleTextChange.bind(this, item._id)}
               name={item.question}>
             {item.options.map((option) => (
               <RadioButton label={option} value={option}/>
@@ -158,24 +180,39 @@ export class Form extends React.Component{
         </Step>
       )
     } else if (item.type === 'location') {
-      return (
-        <Step>
-          <StepLabel>{item.question}</StepLabel>
-          <StepContent>
-            <GooglePlaceAutocomplete
-
-              menuItemStyle={{ fontSize: 13,
-                    display: 'block',
-                    paddingRight: 20,
-                    overflow: 'hidden'}}
-                menuStyle={{cursor: 'default'}}
-                disableFocusRipple={false}
-                results={this.getCoords.bind(this, item._id)}
-              />
-            {this.renderStepActions(step)}
-          </StepContent>
-        </Step>
-      )
+      if (userResponse && userResponse.response && userResponse.response.place) {
+        return (
+          <Step>
+            <StepLabel>{item.question}</StepLabel>
+            <StepContent>
+              <FormMap lat={userResponse.response.location.coordinates[1]}
+                place={userResponse.response.place}
+                lng={userResponse.response.location.coordinates[0]}/>
+              {this.renderStepActions(step)}
+            </StepContent>
+          </Step>
+        )
+      } else {
+        return (
+          <Step>
+            <StepLabel>{item.question}</StepLabel>
+            <StepContent>
+              <GooglePlaceAutocomplete
+                searchText={this.state.response && this.state.response.value ?
+                   this.state.response.value : userResponse && userResponse.response ? userResponse.response.place : ''}
+                menuItemStyle={{ fontSize: 13,
+                      display: 'block',
+                      paddingRight: 20,
+                      overflow: 'hidden'}}
+                  menuStyle={{cursor: 'default'}}
+                  disableFocusRipple={false}
+                  results={this.getCoords.bind(this, item._id)}
+                />
+              {this.renderStepActions(step)}
+            </StepContent>
+          </Step>
+        )
+      }
     } else if (item.type === 'image') {
       return (
         <Step>
@@ -261,12 +298,9 @@ export class Form extends React.Component{
                 <div style={{width: '60%'}}>
                   <p style={{marginBottom: '16px'}}>Once you've joined the pledge, we might need a bit more info </p>
               <RaisedButton
-                icon={<FontIcon color='white' style={{marginRight: '16px'}} className="fa fa-facebook-official fa-2x" />}
-                 primary={true} fullWidth={true} label="Join Now" onTouchTap={this.props.handleFacebook} />
-               <div style={{fontSize: '8pt', textAlign: 'center', color:grey500, marginTop: '8px'}}>
 
-                  This does not allow us to post to Facebook without your permission
-                </div>
+                 primary={true} fullWidth={true} label="Join Now" onTouchTap={this.props.setModal} />
+
                 </div>
                 </div>
               </div>

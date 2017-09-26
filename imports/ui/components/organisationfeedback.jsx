@@ -168,9 +168,10 @@ OrgFeedback.propTypes = {
 export default createContainer((props) => {
   console.log(props)
   const reviewHandler = Meteor.subscribe("orgReviews", props.pledgeCreatorId);
+  const pledgeHandler = Meteor.subscribe("pledgeTitles", props.pledgeCreatorId);
 
   return {
-    loading: !reviewHandler.ready(),
+    loading: !reviewHandler.ready() || !pledgeHandler.ready(),
     reviews: Reviews.find({}).fetch(),
   };
 }, OrgFeedback);

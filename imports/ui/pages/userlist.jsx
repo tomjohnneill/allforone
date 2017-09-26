@@ -168,22 +168,22 @@ export class UserList extends React.Component{
 
                           <div style={{display: 'flex', paddingLeft: '10px', paddingBottom: '10px'}}>
                           <div style={{}}>
-                          {this.state.messengerArray[user._id] ? <i className="fa fa-facebook-official fa-2x" style={{color: '#1251BA'}}
+                          {this.state.messengerArray[user._id] ? <i className="fa fa-facebook-official fa-2x" style={{color: '#FF9800'}}
                              aria-hidden="true"></i> : <i className="fa fa-facebook-official fa-2x" style={{color: grey200}}
                                 aria-hidden="true"></i>}
                           </div>
                           <div style={{marginLeft: '10px'}}>
-                            {this.state.oneSignalArray[user._id] ? <i className="fa fa-bell fa-2x" style={{color: '#1251BA'}}
+                            {this.state.oneSignalArray[user._id] ? <i className="fa fa-bell fa-2x" style={{color: '#FF9800'}}
                                aria-hidden="true"></i> : <i className="fa fa-bell fa-2x" style={{color: grey200}}
                                   aria-hidden="true"></i>}
                           </div>
                           <div style={{marginLeft: '10px'}}>
-                            {this.state.emailArray[user._id] ? <i className="fa fa-envelope-o fa-2x" style={{color: '#1251BA'}}
+                            {this.state.emailArray[user._id] ? <i className="fa fa-envelope-o fa-2x" style={{color: '#FF9800'}}
                                aria-hidden="true"></i> : <i className="fa fa-envelope-o fa-2x" style={{color: grey200}}
                                   aria-hidden="true"></i>}
                           </div>
                           <div style={{marginLeft: '10px'}}>
-                            {this.state.smsArray[user._id] ? <i className="fa fa-comment fa-2x" style={{color: '#1251BA'}}
+                            {this.state.smsArray[user._id] ? <i className="fa fa-comment fa-2x" style={{color: '#FF9800'}}
                                aria-hidden="true"></i> : <i className="fa fa-comment fa-2x" style={{color: grey200}}
                                   aria-hidden="true"></i>}
                           </div>

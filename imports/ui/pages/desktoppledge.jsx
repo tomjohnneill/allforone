@@ -35,8 +35,8 @@ import Assignment from 'material-ui/svg-icons/action/assignment';
 import People from 'material-ui/svg-icons/social/person-outline';
 import Group from 'material-ui/svg-icons/social/group';
 import Loadable from 'react-loadable';
-import MediaQuery from 'react-responsive';
-import DesktopPledge from '/imports/ui/pages/desktoppledge.jsx';
+import AccessTime from 'material-ui/svg-icons/device/access-time';
+import Place from 'material-ui/svg-icons/maps/place';
 import {SignupModal} from '/imports/ui/components/signupmodal.jsx';
 import Badge from 'material-ui/Badge';
 
@@ -140,7 +140,29 @@ const styles = {
 explanation: {
   fontSize: '8pt',
   color: grey500
-}
+},   tab: {
+    height: '36px',
+    backgroundColor: 'white',
+    color: '#0068B2',
+    fontWeight: 700,
+    fontSize: '12px',
+    letterSpacing: '0.4px',
+    lineHeight: '16px',
+    fontFamily: 'Roboto'
+    , borderBottom: '1px solid #e4e4e4', boxShadow: '0 1px 5px rgba(0, 0, 0, 0.1) '
+  },
+  selectedTab: {
+    height: '36px',
+    fontFamily: 'Roboto',
+    backgroundColor: 'white',
+    color: '#484848',
+    marginLeft: '-2px',
+    fontWeight: 700,
+    fontSize: '12px',
+    letterSpacing: '0.4px',
+    lineHeight: '16px'
+
+  }
 }
 
 
@@ -160,7 +182,7 @@ export function dateDiffInDays(a, b) {
   return Math.floor((utc2 - utc1) / _MS_PER_DAY);
 }
 
-export class DynamicPledge extends React.Component {
+export class DesktopPledge extends React.Component {
   constructor(props) {
     super(props);
     this.state = {open: false, adminDrawerOpen: false, selectedIndex: 0}
@@ -207,14 +229,10 @@ export class DynamicPledge extends React.Component {
     mixpanel.track("Clicked on " + tab + " tab")
   }
 
-  onComplete = (_id, title) => {
-    Meteor.call('tagUserAsJustAdded', _id, title)
-    Meteor.call('runDetailInFuture', this.props.details)
-    Meteor.call('findFriends')
-    Meteor.call('triggerSocialScoreCalculate')
-    Meteor.call('recalculateScore', Meteor.userId())
+  setModal = () => {
+    let modal = this.state.modalOpen
+    this.setState({modalOpen: !modal})
   }
-
 
   handleFacebook = (e) => {
 
@@ -265,11 +283,6 @@ export class DynamicPledge extends React.Component {
 
   handleModal = (e) => {
     this.setState({modalOpen: true})
-  }
-
-  setModal = () => {
-    let modal = this.state.modalOpen
-    this.setState({modalOpen: !modal})
   }
 
   handleModalChangeOpen = (e) => {
@@ -439,8 +452,6 @@ export class DynamicPledge extends React.Component {
     }
     console.log('Tab Length: ' + tabLength)
 
-    var inkBarLeft = this.refs.tabs ? this.refs.tabs.state.selectedIndex : 0 * 50 + 20
-
     var badgeFill
      if (this.props.details && this.props.details.length > 0 && this.props.details[this.props.details.length-1].members) {
       var lastResponse = this.props.details[this.props.details.length-1].members.filter(function(response) {
@@ -457,201 +468,211 @@ export class DynamicPledge extends React.Component {
       badgeFill = null
     }
 
-
-
-    console.log('badgeFill: ' + badgeFill)
-
-
-
+    var inkBarLeft = this.refs.tabs ? this.refs.tabs.state.selectedIndex : 0 * 50 + 20
 
     return (
       <div>
-        <Link to='/pages/pledges'>
-        <div style={{display: 'flex' ,backgroundColor: grey500, color: 'white'}}>
-                  <IconButton
-            iconStyle={styles.smallIcon}
-            style={styles.small}
-          >
-            <ArrowBack />
-          </IconButton>
-
-        <div style={{width: '100%', paddingLeft: '16px', backgroundColor: grey500, color: 'white', alignItems: 'center', display: 'flex'}}>
-
-          BACK TO PLEDGES
-        </div>
-        </div>
-        </Link>
 
         {this.props.loading ? <div style={{height: '80vh', width: '100%',
                                               display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
         <CircularProgress/>
         </div> :
-          <DocumentTitle title={this.props.pledge.title}>
-            <div>
-          <MediaQuery minDeviceWidth={700}>
-            <DesktopPledge params={this.props.params}/>
-          </MediaQuery>
+            <div style={{marginTop: '36px'}}>
 
-          <MediaQuery maxDeviceWidth = {700}>
-          <Card style={{backgroundColor: 'white', maxWidth: '700px'}}>
-            {this.props.pledge.creatorId === Meteor.userId() || Roles.userIsInRole(Meteor.userId(), 'admin') ?
-              <div>
-            <CardHeader
-              style={{overflow: 'hidden'}}
-                title={this.props.pledge.creator}
-                subtitle={'Pledged ' + this.props.pledge.updated}
+            <div style={{paddingLeft: 'auto', paddingRight: 'auto', display: 'flex',
+                  justifyContent: 'center'}}>
+              <div
+                ref='variableBox'
+                style={{display: 'flex',
+                    alignItems: 'center', flexDirection: 'row',maxWidth: '1200px'}}>
+              <div style={{flex: 1, height: '100%', width: '60%'}}>
+                <img src={this.props.pledge.coverPhoto} style={{height: 'auto', maxWidth: '100%'
+                  , objectFit: 'cover'}}/>
+              </div>
+              <div style={{flex: 1, height: '100%', width: '40%', justifyContent: 'space-between', display: 'flex', flexDirection: 'column'}}>
+                <CardTitle
+                  style={{paddingTop: '0px', paddingLeft: '32px',  overflowX:'hidden', paddingBottom: '0px'}}
+                  title={this.props.pledge.title}
+                  subtitle={this.props.pledge.summary}
+                  children={
+                    <div>
+                      <div style={{height: '16px'}}/>
+                      <LinearProgress  style={{height: '10px', borderRadius: '4px'}} color={amber500} mode="determinate" value={this.props.pledge.pledgeCount/this.props.pledge.target*100} />
+                      <div style={{display: 'flex', paddingTop: '16px'}}>
+                        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
+                          <div style={styles.number}>
+                            {this.props.pledge.pledgeCount}
+                          </div>
+                          <div style={styles.bottomBit}>
+                            /{this.props.pledge.target} people
+                          </div>
+                        </div>
 
-                textStyle={{maxWidth: '60%', paddingRight: '0px'}}
-                avatar={this.props.pledge.creatorPicture}
-                children={
-                    <div style={{float: 'right'}}>
-                      <IconButton onTouchTap={this.handleEditClick} tooltip="Edit your pledge">
-                        <Edit />
-                      </IconButton>
-
-                    </div>
-                }
-              />
-            <FlatButton style={{marginBottom: '16px'}} fullWidth={true}
-              primary={true}
-              label='Admin Tools' onTouchTap={this.handleAdminDrawer} />
-            </div>:
-              <div style={{padding: '10px'}}>
-                <Chip
-
-                >
-                  <Avatar src={this.props.pledge.creatorPicture} />
-                  by {this.props.pledge.creator}
-                </Chip></div>}
-
-            <CardMedia
-
-            >
-              <img src={this.props.pledge.coverPhoto === undefined ? '/images/white.png' : this.props.pledge.coverPhoto} />
-            </CardMedia>
-            <CardTitle
-              style={{overflowX:'hidden'}}
-              title={this.props.pledge.title}
-              subtitle={this.props.pledge.summary}
-              children={
-                <div>
-                  <div style={{height: '16px'}}/>
-                  <LinearProgress  style={{height: '10px', borderRadius: '4px'}} color={amber500} mode="determinate" value={this.props.pledge.pledgeCount/this.props.pledge.target*100} />
-                  <div style={{display: 'flex', paddingTop: '16px'}}>
-                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
-                      <div style={styles.number}>
-                        {this.props.pledge.pledgeCount}
-                      </div>
-                      <div style={styles.bottomBit}>
-                        /{this.props.pledge.target} people
+                        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
+                          <div style={styles.number}>
+                            {dateDiffInDays(new Date(),this.props.pledge.deadline)}
+                          </div>
+                          <div style={styles.bottomBit}>
+                            days to go...
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
-                      <div style={styles.number}>
-                        {dateDiffInDays(new Date(),this.props.pledge.deadline)}
-                      </div>
-                      <div style={styles.bottomBit}>
-                        days to go...
-                      </div>
+                  }/>
+                {this.props.pledge.creatorId === Meteor.userId() || Roles.userIsInRole(Meteor.userId(), 'admin') ?
+                  <div>
+
+                <CardHeader
+                  style={{overflow: 'hidden', paddingLeft: '32px'}}
+                    title={this.props.pledge.creator}
+                    subtitle={'Pledged ' + this.props.pledge.updated}
+
+                    textStyle={{maxWidth: '60%', paddingRight: '0px'}}
+                    avatar={this.props.pledge.creatorPicture}
+                    children={
+                        <div style={{float: 'right'}}>
+                          <IconButton onTouchTap={this.handleEditClick} tooltip="Edit your pledge">
+                            <Edit />
+                          </IconButton>
+
+                        </div>
+                    }
+                  />
+                <FlatButton style={{marginBottom: '16px', paddingLeft: '32px'}} fullWidth={true}
+                  primary={true}
+                  label='Admin Tools' onTouchTap={this.handleAdminDrawer} />
+                </div>:
+                  <div>
+                    <CardHeader
+                      style={{overflow: 'hidden', paddingLeft: '32px'}}
+                        title={this.props.pledge.creator}
+                        subtitle={'Created ' + this.props.pledge.updated}
+
+                        textStyle={{maxWidth: '60%', paddingRight: '0px'}}
+                        avatar={this.props.pledge.creatorPicture}
+                      />
+                  </div>}
+
+                    <div>
+                    <div style={{alignItems: 'center', display: 'flex', paddingLeft: '32px'}}>
+                      <Place style={{marginRight: '16px'}} color={grey500}/>
+                      This is where it's being held
+                    </div>
+                    <div style={{alignItems: 'center', display: 'flex', paddingLeft: '32px', marginTop: '12px'}}>
+                      <AccessTime style={{marginRight: '16px'}} color={grey500}/>
+                      And it's going to be at this time and date
+                    </div>
+                    </div>
+              </div>
+              </div>
+            </div>
+
+            <div style={{paddingLeft: 'auto', paddingRight: 'auto', display: 'flex',
+                  justifyContent: 'center', marginTop: '32px'}}>
+                <div style={{width: '500px', maxWidth: '500px'}}>
+                  {this.props.pledge.pledgedUsers.includes(Meteor.userId()) ?
+                    <div>
+                      {this.props.user.userMessengerId  ? <div>
+                      <Subheader >Share your pledge</Subheader>
+                        <SocialShareLoadable pledge={this.props.pledge}/>
+                      </div> :
+                      <div >
+
+                        <div style={{overflowX: 'hidden',display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', paddingTop: '6px', flexDirection: 'column'}}>
+                          <div style={{marginLeft: '103px', marginBottom: '20px', marginTop: '5px'}}>
+                      <MessengerPlugin
+                        appId={Meteor.settings.public.FacebookAppId}
+                        pageId={Meteor.settings.public.FacebookPageId}
+                        size='large'
+                        color='blue'
+                        passthroughParams={Meteor.userId()}
+                      />
+
+                    </div>
+                    <div style={styles.explanation}>
+                      <p style={{textAlign: 'center'}}>
+                        Click this button to receive a message when the pledge reaches its target
+                      </p>
+                    </div>
                     </div>
                   </div>
-                </div>
-
-              }/>
-              {this.props.pledge.pledgedUsers.includes(Meteor.userId()) ?
-                <div style={{marginBottom: '16px'}}>
-                  {this.props.user.userMessengerId  ? <div>
-                  <Subheader >Share your pledge</Subheader>
-                    <SocialShareLoadable pledge={this.props.pledge}/>
-                  </div> :
-                  <div >
-
-                    <div style={{overflowX: 'hidden',display: 'flex',
-                      alignItems: 'center', justifyContent: 'center', paddingTop: '6px', flexDirection: 'column'}}>
-                      <div style={{marginLeft: '103px', marginBottom: '20px', marginTop: '5px'}}>
-                  <MessengerPlugin
-                    appId={Meteor.settings.public.FacebookAppId}
-                    pageId={Meteor.settings.public.FacebookPageId}
-                    size='large'
-                    color='blue'
-                    passthroughParams={Meteor.userId()}
-                  />
-
-                </div>
-                <div style={styles.explanation}>
-                  <p style={{textAlign: 'center'}}>
-                    Click this button to receive a message when the pledge reaches its target
-                  </p>
-                </div>
-                </div>
-              </div>
-              }
+                  }
 
 
-                <div style={{display: 'flex', justifyContent: 'center', marginTop: '10px'}}>
-                <FlatButton   label='Unpledge from pledge' onTouchTap={this.handleUnpledge.bind(this, this.props.pledge._id, this.props.pledge.slug)}/>
-                </div>
-              </div>
+                    <div style={{display: 'flex', justifyContent: 'center', marginTop: '10px'}}>
+                    <FlatButton   label='Unpledge from pledge' onTouchTap={this.handleUnpledge.bind(this, this.props.pledge._id, this.props.pledge.slug)}/>
+                    </div>
+                  </div>
 
-              :
-              <div style={{display: 'flex', justifyContent: 'center'}}>
-                <div style={{width: '60%', marginBottom: '16px'}}>
-                  {Meteor.userId() === null ?
-                    <div>
-                  <RaisedButton
-
-                     primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleModal} />
-
-                    </div>:
-                  <RaisedButton primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleFacebook} /> }
-                </div>
-            </div>}
-
-            <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'scroll'}}>
-                        {this.props.user !== undefined &&
-                          this.props.user.friends !== undefined
-                          && this.props.user.friends.length > 0 ?
+                  :
+                  <div style={{display: 'flex', justifyContent: 'center', paddingBottom: '16px'}}>
+                    <div style={{width: '60%'}}>
+                      {Meteor.userId() === null ?
                         <div>
-                          {
-                          this.props.user.friends.map((friend) => (
-                            this.props.pledge.pledgedUsers.includes(Meteor.users.findOne({'services.facebook.id':friend.id}) ? Meteor.users.findOne({'services.facebook.id':friend.id})._id : 'abasc') ?
+                      <RaisedButton
 
-                          <IconButton style={{marginLeft: '-10px'}} tooltip={friend.first_name + ' ' + friend.last_name}>
-                             <Avatar key={friend.id} src={friend.picture.data.url} onTouchTap={this.handleFriendClick.bind(this, friend.id)}/>
-                          </IconButton>
-                            : null
-                          ))
-                        }
-                        </div>
-                          : this.props.user === undefined  ?
-                       <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                         Click join to see which (if any) of your friends have committed
-                       </div>
-                         :
-                        null}
-                      </div>
+                         primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleModal} />
+                       
+                        </div>:
+                      <RaisedButton primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleFacebook} /> }
+                    </div>
+                </div>}
+
+                <div >
+                            {this.props.user !== undefined &&
+                              this.props.user.friends !== undefined
+                              && this.props.user.friends.length > 0 ?
+                            <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'scroll'}}>
+                              {
+                              this.props.user.friends.map((friend) => (
+                                this.props.pledge.pledgedUsers.includes(Meteor.users.findOne({'services.facebook.id':friend.id}) ? Meteor.users.findOne({'services.facebook.id':friend.id})._id : 'abasc') ?
+
+                              <IconButton style={{marginLeft: '-10px'}} tooltip={friend.first_name + ' ' + friend.last_name}>
+                                 <Avatar key={friend.id} src={friend.picture.data.url} onTouchTap={this.handleFriendClick.bind(this, friend.id)}/>
+                              </IconButton>
+                                : null
+                              ))
+                            }
+                            </div>
+                              : this.props.user === undefined  ?
+                           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                             Click join to see which (if any) of your friends have committed
+                           </div>
+                             :
+                            null}
+                          </div>
+                </div>
+            </div>
+
+            <div style={{display: 'flex', justifyContent: 'center'}}>
+          <div style={{backgroundColor: 'white', maxWidth: '800px', width: '1200px', marginTop: '16px'}}>
+
+
+
+
 
             {/*
             <div style={{color: 'rgba(0, 0, 0, 0.54)', padding: '16px', fontSize: '14px'}}>
               All or nothing - either all {this.props.pledge.target} of us, or none of us do this.
             </div>
             */}
-            <Divider/>
+
 
 
             <Tabs
               ref='tabs'
+              tabItemContainerStyle={{ backgroundColor: 'white', borderBottom: '1px solid #e4e4e4', boxShadow: '0 1px 5px rgba(0, 0, 0, 0.1) '}}
               style={{overflowX: 'hidden'}}
               onChange={this.handleConsoleLog}
               tabTemplateStyle={{backgroundColor: 'white'}}
-              inkBarStyle={{left: (this.state.selectedIndex) * (100/tabLength) + 5 + '%', backgroundColor: '#FF9800'
-                , zIndex: 2, width: 100/tabLength - 10 +  '%'}}
-              children={<Divider/>}
+              inkBarStyle={{left: (this.state.selectedIndex) * (100/tabLength) + 9 + '%', backgroundColor: '#FF9800'
+                , zIndex: 2, width: 100/tabLength - 18 +  '%'}}
+
               >
               <Tab
-                buttonStyle={{textTransform: 'none', color: 'rgba(0, 0, 0, 0.54)', backgroundColor: 'white',
-                                }}
+                buttonStyle={styles.selectedTab}
                 label='The Story'>
                 <CardText  children = {
                     <div>
@@ -665,8 +686,7 @@ export class DynamicPledge extends React.Component {
               </Tab>
               {this.props.details && this.props.details.length > 0 ?
               <Tab
-                buttonStyle={{textTransform: 'none', color: 'rgba(0, 0, 0, 0.54)', backgroundColor: 'white',
-                                }}
+                buttonStyle={styles.selectedTab}
                 label={
                   badgeFill > 0 ?
                   <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
@@ -680,14 +700,12 @@ export class DynamicPledge extends React.Component {
                     />
                   </div> :
                   "Actions"
-                }
-
-                >
+                }>
 
                 <Divider/>
                 <div style={{marginBottom: '200px'}}>
 
-                    <Form pledgeId={this.props.params._id} setModal={this.setModal}  handleFacebook={this.handleFacebook} pledgedUsers={this.props.pledge.pledgedUsers}/>
+                    <Form setModal={this.setModal} pledgeId={this.props.params._id}  handleFacebook={this.handleFacebook} pledgedUsers={this.props.pledge.pledgedUsers}/>
 
                 </div>
 
@@ -695,8 +713,7 @@ export class DynamicPledge extends React.Component {
 
               </Tab> : null}
               <Tab
-                buttonStyle={{textTransform: 'none', color: 'rgba(0, 0, 0, 0.54)', backgroundColor: 'white',
-                                }}
+                buttonStyle={styles.selectedTab}
                 label='Feedback'>
                 <div>
 
@@ -709,8 +726,7 @@ export class DynamicPledge extends React.Component {
 
               {this.props.pledge.stripe && this.props.pledge.stripe.plans ?
               <Tab
-                buttonStyle={{textTransform: 'none', color: 'rgba(0, 0, 0, 0.54)', backgroundColor: 'white',
-                                }}
+                buttonStyle={styles.selectedTab}
                 label='Support'>
                 <div>
 
@@ -726,17 +742,14 @@ export class DynamicPledge extends React.Component {
             <CardActions>
 
             </CardActions>
-          </Card>
-
-          </MediaQuery>
-          <SignupModal
-            _id={this.props.params._id}
-            title={this.props.params.pledge}
-            open={this.state.modalOpen}
-            changeOpen={this.handleModalChangeOpen}
-          onComplete={this.onComplete}/>
           </div>
-      </DocumentTitle >
+          </div>
+
+          <SignupModal
+            open={this.state.modalOpen}
+            changeOpen={this.handleModalChangeOpen}/>
+          </div>
+
       }
       {/*
       <div>
@@ -771,7 +784,7 @@ export class DynamicPledge extends React.Component {
   }
 }
 
-DynamicPledge.propTypes = {
+DesktopPledge.propTypes = {
   pledge: PropTypes.object.isRequired,
   loading: PropTypes.bool.isRequired,
 }
@@ -783,11 +796,10 @@ export default createContainer(({params}) => {
   const detailHandler = Meteor.subscribe('details', params._id);
   const reviewHandler = Meteor.subscribe('pledgeReviews', params._id);
 
-
   return {
     loading: !subscriptionHandler.ready() || !reviewHandler.ready() || !detailHandler.ready(),
     pledge: Pledges.findOne({_id: params._id}),
     details: Details.find({pledgeId: params._id}).fetch(),
     user: Meteor.users.find({_id: Meteor.userId()}, {fields: {_id: 1, 'friends': 1, 'justAddedPledge': 1, 'userMessengerId': 1}}).fetch()[0]
   }
-}, DynamicPledge)
+}, DesktopPledge)

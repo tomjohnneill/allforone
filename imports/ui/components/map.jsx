@@ -1,6 +1,7 @@
 import React from 'react';
 import scriptLoader from 'react-async-script-loader';
 import FlatButton from 'material-ui/FlatButton';
+import RaisedButton from 'material-ui/RaisedButton';
 import {Details} from '/imports/api/pledges.js';
 
 @scriptLoader(['https://maps.googleapis.com/maps/api/js?key=AIzaSyBTpDOE9g3QUek4pJ2lWkXhRJuAtFMEx5o&libraries=drawing,geometry'])
@@ -122,7 +123,11 @@ export default class Map extends React.Component {
       <div ref="map" style={{height: '300px', width: '100%'}}></div>
       { !this.map && <div className="center-md">Loading...</div> }
       <FlatButton label='Clear Map' onTouchTap={this.handleClearMap}/>
-      <FlatButton label='Find Polygons' onTouchTap={this.handleFindPolygons}/>
+
+      <div style={{backgroundColor: 'white', padding: '16px', display: 'flex', height: '100px',
+        alignItems: 'center', justifyContent: 'center'}}>
+      <RaisedButton primary={true} label='Check for Matching Users' onTouchTap={this.handleFindPolygons}/>
+      </div>
     </div>
     )
   }

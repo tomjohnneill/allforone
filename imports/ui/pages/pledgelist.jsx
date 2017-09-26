@@ -16,7 +16,22 @@ import Avatar from 'material-ui/Avatar';
 import ArrowBack from 'material-ui/svg-icons/navigation/arrow-back';
 import DocumentTitle from 'react-document-title';
 import CircularProgress from 'material-ui/CircularProgress';
-import FlatButton from 'material-ui/FlatButton'
+import FlatButton from 'material-ui/FlatButton';
+import {GridList, GridTile} from 'material-ui/GridList';
+import {dateDiffInDays} from '/imports/ui/pages/dynamicpledge.jsx';
+import MediaQuery from 'react-responsive';
+
+const styles = {
+  number: {
+    color: '#FF9800',
+    fontSize: '20px',
+  },
+  bottomBit: {
+    color: grey500,
+    marginTop: '-5px',
+    fontSize: '12px'
+  },
+}
 
 export class PledgeList extends React.Component{
   constructor(props) {
@@ -93,12 +108,93 @@ export class PledgeList extends React.Component{
         <CircularProgress/>
         </div> :
         <DocumentTitle title='Pledge List'>
-        <div>
-          <Subheader>Popular pledges, click for more details</Subheader>
+          <div>
+          <MediaQuery minDeviceWidth={700}>
+        <div style={{paddingLeft: '48px', paddingRight: '48px', paddingBottom: '64px'}}>
+          <Subheader style={{fontSize: '25px', letterSpacing: '-0.6px', lineHeight: '30px', color: '#484848',
+          fontWeight: 700, marginTop: '48px', marginBottom: '24px', paddingLeft: '0px', fontFamily: 'Raleway'}}>
+            Popular pledges
+          </Subheader>
 
-          <List style={{backgroundColor: grey200 }}>
+          <List>
 
+
+              <GridList
+                cols={4}
+
+          cellHeight={350}
+          padding={12}>
+          {this.props.pledges.map((pledge) => (
+
+              <GridTile
+                key={pledge._id}
+
+            children={
+                <div onTouchTap={(e) => this.handleTap(pledge._id, pledge.slug)} style={{cursor: 'pointer', height: '100%', width: 'auto', display: 'flex', alignItems: 'center', flexDirection: 'column'}}>
+
+
+                <img style={{width: '100%', height: '60%', maxWidth: '100%', objectFit: 'cover', backgroundColor: grey200}}
+                  src={pledge.coverPhoto} />
+
+                <div style={{color: '#484848',
+                fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', width: '100%', marginTop: '6px'}}>
+                  <b style={{color: '#FF9800'}}>{pledge.pledgeCount}</b> people,  <b style={{color: '#FF9800'}}>{dateDiffInDays(new Date(),pledge.deadline)}</b> days to go...
+                </div>
+
+                {/*
+                <div style={{display: 'flex', paddingTop: '6px', width: '100%'}}>
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
+                      <div style={styles.number}>
+                        {pledge.pledgeCount}
+                      </div>
+                      <div style={styles.bottomBit}>
+                        /{pledge.target} people
+                      </div>
+                    </div>
+
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
+                      <div style={styles.number}>
+                        {dateDiffInDays(new Date(),pledge.deadline)}
+                      </div>
+                      <div style={styles.bottomBit}>
+                        days to go...
+                      </div>
+                    </div>
+                  </div>
+                  */}
+
+                <LinearProgress style={{marginRight: '16px', marginLeft: '16px', marginTop: '10px', marginBottom: '6px'}} color={amber500} mode="determinate"
+                     value={pledge.pledgedUsers.length/pledge.target*100} />
+                <div style={{color: '#484848',
+                fontWeight: 700, fontSize: '19px', lineHeight: '22px', maxHeight: '44px', letterSpacing: '-0.8px'
+                , overflow: 'hidden', fontFamily: 'Raleway', textOverflow: 'ellipsis', width: '100%'}}>
+                  {pledge.title}
+                </div>
+
+              </div>}
+              />))
+            }
+          </GridList>
+        </List>
+      </div>
+
+
+            </MediaQuery>
+            <MediaQuery maxDeviceWidth={700}>
+              <div style={{paddingLeft: '18px', paddingRight: '18px', paddingBottom: '64px'}}>
+                <Subheader style={{fontSize: '25px', letterSpacing: '-0.6px', lineHeight: '30px', color: '#484848',
+                fontWeight: 700, marginTop: '48px', marginBottom: '24px', paddingLeft: '0px', fontFamily: 'Raleway'}}>
+                  Popular pledges
+                </Subheader>
+
+                <List>
+            <GridList
+              cols={2}
+
+        cellHeight={220}
+        padding={12}>
         {this.props.pledges.map((pledge) => (
+          (Math.random() > 1) ?
           <div style={{margin: 10, backgroundColor: 'white'}} onTouchTap={(e) => this.handleTap(pledge._id, pledge.slug)}>
             <ListItem key  ={pledge._id}
 
@@ -107,8 +203,8 @@ export class PledgeList extends React.Component{
 
               leftAvatar={pledge.coverPhoto === undefined ? <Avatar>{pledge.title.charAt(0)}</Avatar> : <Avatar src={pledge.coverPhoto}/>}/>
             <div style={{marginLeft: '72px', paddingBottom: '10px'}}>
-              <div style={{marginRight: '16px'}}>
-          <LinearProgress style={{marginRight: '16px'}} color={amber500} mode="determinate"
+              <div style={{marginRight: '16px', marginBottom: '5px'}}>
+          <LinearProgress style={{marginRight: '16px', marginBottom: '5px'}} color={amber500} mode="determinate"
              value={pledge.pledgedUsers.length/pledge.target*100} />
            </div>
            <div style={{marginTop: '10px'}}>
@@ -116,16 +212,67 @@ export class PledgeList extends React.Component{
             </div>
           </div>
           <Divider/>
-          </div>
+          </div> :
+
+          <GridTile
+            key={pledge._id}
+
+        children={
+            <div onTouchTap={(e) => this.handleTap(pledge._id, pledge.slug)} style={{cursor: 'pointer', height: '100%', width: 'auto', display: 'flex', alignItems: 'center', flexDirection: 'column'}}>
+
+
+            <img style={{width: '100%', height: '50%', maxWidth: '100%', objectFit: 'cover', backgroundColor: grey200}}
+              src={pledge.coverPhoto} />
+
+            <div style={{color: '#484848',
+            fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', width: '100%', marginTop: '6px'}}>
+              <b style={{color: '#FF9800'}}>{pledge.pledgeCount}</b> people,  <b style={{color: '#FF9800'}}>{dateDiffInDays(new Date(),pledge.deadline)}</b> days to go...
+            </div>
+
+            {/*
+            <div style={{display: 'flex', paddingTop: '6px', width: '100%'}}>
+                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
+                  <div style={styles.number}>
+                    {pledge.pledgeCount}
+                  </div>
+                  <div style={styles.bottomBit}>
+                    /{pledge.target} people
+                  </div>
+                </div>
+
+                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
+                  <div style={styles.number}>
+                    {dateDiffInDays(new Date(),pledge.deadline)}
+                  </div>
+                  <div style={styles.bottomBit}>
+                    days to go...
+                  </div>
+                </div>
+              </div>
+              */}
+
+            <LinearProgress style={{marginRight: '16px', marginLeft: '16px', marginTop: '10px', marginBottom: '6px'}} color={amber500} mode="determinate"
+                 value={pledge.pledgedUsers.length/pledge.target*100} />
+            <div style={{color: '#484848',
+            fontWeight: 700, fontSize: '19px', lineHeight: '22px', maxHeight: '66px', letterSpacing: '-0.8px'
+            , overflow: 'hidden', fontFamily: 'Raleway', textOverflow: 'ellipsis', width: '100%'}}>
+              {pledge.title}
+            </div>
+
+            </div>
+            }
+        />
+
           ))}
-        </List>
+          </GridList>
+            </List>
+            </div>
+          </MediaQuery>
+
         <div style={{height: '36px'}}/>
-        <div>
-        <RaisedButton
-          style={{position: 'fixed', bottom: '0px', zIndex: '100', maxWidth: '600px', width: '100%'
-          , visibility: this.props.hidden ? 'hidden' : 'visible'}}
-          secondary={true}
-          label='Add a new pledge' onTouchTap={this.handleCreatePledge}/>
+
+        <div style={{height: '36px', width: '100%'}}>
+        
         </div>
         </div>
         </DocumentTitle>

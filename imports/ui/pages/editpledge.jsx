@@ -582,7 +582,9 @@ render() {
     </div>
     }
 
-        <RaisedButton label='Submit Application' disabled={!this.props.thisUser[0].userMessengerId && (!Roles.getRolesForUser(Meteor.userId()).includes('admin'))} onTouchTap={this.submitPledge} secondary={true} fullWidth={true}/>
+        <RaisedButton label='Submit Application'
+          disabled={!this.props.thisUser[0].userMessengerId && (!Roles.getRolesForUser(Meteor.userId()).includes('admin'))}
+          onTouchTap={this.submitPledge} secondary={true} fullWidth={true}/>
         <div style={{height: '20px'}}/>
         <FlatButton label='Delete Pledge' onTouchTap={this.handleDelete} fullWidth={true}/>
         </Card>
