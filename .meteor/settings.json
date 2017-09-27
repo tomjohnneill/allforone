@@ -9,25 +9,31 @@
    }
  },
  "public": {
-"TrelloAPIKey": "634712415623c414f2160b98e65eeec3",
- "MailgunAPIKey" : "key-8c19a4f4e5a234f18dadd781ec8e091a",
- "GoogleMapsAPIKey": "AIzaSyBTpDOE9g3QUek4pJ2lWkXhRJuAtFMEx5o",
- "FacebookAppId": "1924574794468253",
+   "Twitter": {
+     "consumer_key": "SelVSVlX6RKgU09c7Iy2j2M1j",
+     "consumer_secret": "MY3mWdZXecCWh60mBM3hB4ubXinpTkNX1a2Q64g2NSED3elikr",
+     "access_token_key": "",
+     "acess_token_secret": ""
+   },
+   "TrelloAPIKey": "634712415623c414f2160b98e65eeec3",
+   "MailgunAPIKey" : "key-8c19a4f4e5a234f18dadd781ec8e091a",
+   "GoogleMapsAPIKey": "AIzaSyBTpDOE9g3QUek4pJ2lWkXhRJuAtFMEx5o",
+   "FacebookAppId": "1924574794468253",
    "eventbriteAPIKey" : "X7YIS4ONHKVGXTJTNDIW",
- "IndiegogoAPIKey" : "34e49c4cb4113b4d4b2975d610d41d46fdfef279c7d532d35f733475e350967a",
- "MeetupAPIKey": "163f53653d28356f76636170132325",
- "FacebookSecret": "61d6993b66ee0aab58e0123f164d873f",
- "FacebookPageId": "117077928875496",
- "FacebookPageAccessToken": "EAAbWYZCz3y50BAJbtpN2eEtLXmMJJN0QMX2zBUh1BGgk7W07bHRswWrQRSxbwOHdooi4bZAuIJeSqFEiDnSmTzYQc3mfKsamtgcsKSDh4bXMAmKA5IGG6Gioy4hvAlRKdoRWjbwcpQEAfvQBVruTS1BnL7V0oi43NhY3dCJwZDZD",
- "MAIL_URL": "smtp://tom%40idleapp.io:Tsinghua16@smtp.gmail.com:587/",
- "onesignal" : {
-   "appId": "db74184b-6bca-4636-82bf-2677c54a9c39",
-   "webId": "web.onesignal.auto.0893d0c7-c315-4498-a086-d9071f0f29e9",
-   "api_key": "ODA4ZWFhMzEtMjliYi00MTc3LTlkZjAtN2IyZDc1ODRkNDFm"
- }
- , "analyticsSettings": {
-     "Google Analytics" : {"trackingId": "UA-99924968-1"}
+   "IndiegogoAPIKey" : "34e49c4cb4113b4d4b2975d610d41d46fdfef279c7d532d35f733475e350967a",
+   "MeetupAPIKey": "163f53653d28356f76636170132325",
+   "FacebookSecret": "61d6993b66ee0aab58e0123f164d873f",
+   "FacebookPageId": "117077928875496",
+   "FacebookPageAccessToken": "EAAbWYZCz3y50BAJbtpN2eEtLXmMJJN0QMX2zBUh1BGgk7W07bHRswWrQRSxbwOHdooi4bZAuIJeSqFEiDnSmTzYQc3mfKsamtgcsKSDh4bXMAmKA5IGG6Gioy4hvAlRKdoRWjbwcpQEAfvQBVruTS1BnL7V0oi43NhY3dCJwZDZD",
+   "MAIL_URL": "smtp://tom%40idleapp.io:Tsinghua16@smtp.gmail.com:587/",
+   "onesignal" : {
+     "appId": "db74184b-6bca-4636-82bf-2677c54a9c39",
+     "webId": "web.onesignal.auto.0893d0c7-c315-4498-a086-d9071f0f29e9",
+     "api_key": "ODA4ZWFhMzEtMjliYi00MTc3LTlkZjAtN2IyZDc1ODRkNDFm"
    }
+   , "analyticsSettings": {
+       "Google Analytics" : {"trackingId": "UA-99924968-1"}
+     }
 }
 
 }

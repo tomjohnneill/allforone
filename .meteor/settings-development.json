@@ -8,12 +8,18 @@
   "TOKEN": "ac065e7cb9c9a1e4940892043cb747bd",
   "ROOT_URL": "http://localhost:3000"
 },
+  "private" : {
+    "stripe": {
+      "secretKey": "sk_test_43eK0q3vbXaQKDOi3hj0LqTM"
+    }
+  },
   "public": {
   "TrelloAPIKey": "634712415623c414f2160b98e65eeec3",
   "MailgunAPIKey" : "key-8c19a4f4e5a234f18dadd781ec8e091a",
   "GoogleMapsAPIKey": "AIzaSyBTpDOE9g3QUek4pJ2lWkXhRJuAtFMEx5o",
   "eventbriteAPIKey" : "X7YIS4ONHKVGXTJTNDIW",
   "FacebookAppId": "779040465595000",
+  "ROOT_URL": "http://localhost:3000",
   "MeetupAPIKey": "163f53653d28356f76636170132325",
    "IndiegogoAPIKey" : "34e49c4cb4113b4d4b2975d610d41d46fdfef279c7d532d35f733475e350967a",
   "FacebookSecret": "c8f18368711efd6b9faabfb115452682",
@@ -24,6 +30,10 @@
     "appId": "db74184b-6bca-4636-82bf-2677c54a9c39",
     "webId": "web.onesignal.auto.0893d0c7-c315-4498-a086-d9071f0f29e9",
     "api_key": "ODA4ZWFhMzEtMjliYi00MTc3LTlkZjAtN2IyZDc1ODRkNDFm"
+  },
+  "stripe": {
+    "PublishableKey" : "pk_test_PBuPPaqr7xVlxcSumCwIER9p",
+    "client_id": "ca_BEFcvBJJ19U1F421J0SkEQPsyh50bbxM"
   },
   "appId": "db74184b-6bca-4636-82bf-2677c54a9c39",
   "webId": "web.onesignal.auto.0893d0c7-c315-4498-a086-d9071f0f29e9"
