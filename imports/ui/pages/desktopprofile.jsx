@@ -1,7 +1,7 @@
 import React, { Component, PropTypes } from 'react';
 import { Meteor } from 'meteor/meteor';
 import { createContainer } from 'meteor/react-meteor-data';
-import {grey200, grey500, grey100, amber500, grey700} from 'material-ui/styles/colors'
+import {grey200, grey500, grey100, amber500} from 'material-ui/styles/colors'
 import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card';
 import RaisedButton from 'material-ui/RaisedButton';
 import LinearProgress from 'material-ui/LinearProgress';
@@ -48,7 +48,7 @@ const ProfilePledgesLoadable = Loadable({
 
 const styles = {
   box: {
-
+    backgroundImage: 'url(/images/blu_stripes.png)',
 
     marginBottom: '10px',
 
@@ -77,42 +77,6 @@ const styles = {
   },
   targetCommitments: {
     textAlign: 'center'
-  }
-  ,oneBox: {
-    width: '25%',
-    minWidth: '350px'
-    , maxWidth: '100vw'
-  , overflowX: 'hidden'
-  , margin: '10px'
-  , boxSizing: 'border-box',
-  borderRadius: '0px',
-  border: '1px solid lightgrey',
-  boxShadow: 'inherit'
-},
-  boxHeader: {
-    fontSize: '18px', letterSpacing: '-0.6px', lineHeight: '30px', color: '#484848', backgroundColor: grey100,
-    fontWeight: 700, paddingLeft: '16px', paddingTop: '6px', paddingBottom: '6px', marginBottom: '10px'
-  },
-  headerbox: {
-    width: '25%',
-    minWidth: '350px'
-    , maxWidth: '100vw'
-  , overflowX: 'hidden',
-  marginLeft: '10px',
-  marginRight: '10px'
-  }
-  ,
-  realheaderbox: {
-    width: '25%',
-    height: '100%',
-    paddingLeft: '16px',
-    minWidth: '350px'
-    , maxWidth: '100vw'
-  , overflowX: 'hidden',
-  marginLeft: '10px',
-  marginRight: '10px',
-  display: 'flex',
-  alignItems: 'center'
   }
 
 }
@@ -434,42 +398,16 @@ export class Profile extends Component {
         </div>
        :
           <div style={styles.box}>
-            <div style={{backgroundColor: grey700, height: '40px', color: '#FFF', fontWeight: 'bold', fontSize: '18px', letterSpacing: '-0.6px',
-                width: '100%',  marginTop: '24px', marginBottom: '14px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center'}}>
-              <div style={styles.realheaderbox}>
-                Dashboard
-              </div>
-              <div style={styles.headerbox}/>
-              <div style={styles.headerbox}/>
-            </div>
+            
 
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', boxSizing: 'border-box'}}>
-
-
-            <Card style={styles.oneBox}>
-              <Subheader style={styles.boxHeader}>
-                Your details
-              </Subheader>
+            <div style={{maxWidth: '700px'}}>
+            <Card>
               <CardHeader
                   title={this.props.thisUser.profile.name}
                   subtitle={'Joined ' + this.props.thisUser.createdAt.toDateString()}
                   avatar={this.props.thisUser.profile.picture}
                 />
               <Subheader>Contact methods for when a pledge finishes:</Subheader>
-                <ListItem
-                    onTouchTap={this.handleNotificationsClick}
-                    primaryText="Send a push notification"
-                    leftAvatar={<IconButton
-                      style={{padding: '0px'}}
-                      iconStyle={{height: '36px', width: '36px'}}
-                      >
-                      <NotificationsActive
-                       color={grey500}
-                      />
-                      </IconButton>
-                      }
-                    />
               {/*}  <ListItem
                   onTouchTap={this.handleNotificationsClick}
                   primaryText="Send a push notification"
@@ -535,7 +473,7 @@ export class Profile extends Component {
                   </ListItem>
                   {this.props.thisUser && !this.props.thisUser.userMessengerId ?
                     <div>
-                <Subheader>Send alerts to my Facebook</Subheader>
+                <Subheader>Sent alerts to my Facebook</Subheader>
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                   <div style={{marginLeft: '85px', marginBottom: '20px', marginTop: '5px'}}>
                 <MessengerPlugin
@@ -554,33 +492,24 @@ export class Profile extends Component {
 
             </Card>
 
-
-
-
-            <Card style={styles.oneBox}>
-
-              <Subheader style={styles.boxHeader}>
-                Your reviews
-              </Subheader>
+            <Card style={{marginTop: '20px'}}>
                 <ReviewList userId={Meteor.userId()}/>
                   </Card>
 
-          <Card style={styles.oneBox}>
-          <Subheader style={styles.boxHeader}>Your pledges</Subheader>
+          {/*  <Card style={{marginTop: '20px'}}>
                 <ProfilePledgesLoadable/>
                   </Card>
+                  */}
 
-                  {/*
-                <Card style={styles.oneBox}>
-                    <Subheader style={styles.boxHeader}>Suggestions</Subheader>
+                <Card style={{marginTop: '20px'}}>
+                    <Subheader>Suggestions</Subheader>
                     <SuggestionList userId={Meteor.userId()}/>
                 </Card>
-                */}
 
 
-                  <Card style={styles.oneBox}>
+                  <Card style={{marginTop: '20px'}}>
                 <List>
-                                    <Subheader style={styles.boxHeader}>Your friends</Subheader>
+                                    <Subheader>Your friends</Subheader>
                   <div style={{display: 'flex',  backgroundColor: grey100
                     , paddingTop: '20px', paddingLeft: '20px', paddingRight: '20px', paddingBottom: '40px', fontSize: '14px', width: '100%', boxSizing: 'border-box', overflowX: 'scroll'}}>
                     {Meteor.user().friends ?
@@ -604,11 +533,9 @@ export class Profile extends Component {
                   </div>
                 </List>
                 </Card>
-
-
-                <Card style={styles.oneBox}>
+                <Card style={{marginTop: '20px'}}>
                   <List>
-                  <Subheader style={styles.boxHeader}>Leaderboard</Subheader>
+                  <Subheader>Leaderboard</Subheader>
                   <div style={{paddingLeft: '16px', color: grey500, fontStyle: 'italic'}}>
                     Get more friends to join, or sign up to more pledges to increase your score</div>
                   <div style={{padding: '16px'}}>
@@ -641,8 +568,8 @@ export class Profile extends Component {
                 {/*}<RaisedButton label='Calculate my score' onTouchTap={this.handleScore}/>*/}
             </Card>
 
-            <Card style={styles.oneBox}>
-              <Subheader style={styles.boxHeader}>Your badges</Subheader>
+            <Card style={{marginTop: '20px'}}>
+              <Subheader>Your badges</Subheader>
               <div style={{padding: '16px'}}>
               <Badges/>
               </div>

@@ -24,6 +24,7 @@ import Settings from 'material-ui/svg-icons/action/settings';
 import { ServiceConfiguration } from 'meteor/service-configuration';
 import InfoOutline from 'material-ui/svg-icons/action/info';
 import MessagingButton from '/imports/ui/components/messagingbutton.jsx';
+import {SignupModal} from '/imports/ui/components/signupmodal.jsx';
 
 import globalStyles from '/client/main.css';
 
@@ -92,7 +93,7 @@ export default class Navigation extends React.Component {
 
   constructor(props){
     super(props);
-    this.state = {open: false, changePasswordOpen: false};
+    this.state = {open: false, changePasswordOpen: false, modalOpen: false};
     this.logout = this.logout.bind(this);
 
   }
@@ -192,6 +193,20 @@ export default class Navigation extends React.Component {
     })
   }
 
+  handleModal = (e) => {
+    this.setState({open: false})
+    this.setState({modalOpen: true})
+  }
+
+  setModal = () => {
+    let modal = this.state.modalOpen
+    this.setState({modalOpen: !modal})
+  }
+
+  handleModalChangeOpen = (e) => {
+    this.setState({modalOpen: false})
+  }
+
   handleSignIn = (e) => {
     e.preventDefault()
     Meteor.loginWithFacebook({requestPermissions: ['email', 'public_profile', 'user_friends']},function(error, result) {
@@ -243,14 +258,8 @@ export default class Navigation extends React.Component {
   handleCreatePledge = (e) => {
     e.preventDefault()
     if (Meteor.userId() === null) {
-      mixpanel.track("Clicked create account")
-      Meteor.loginWithFacebook({ requestPermissions: ['email', 'public_profile', 'user_friends']},function(error, result) {
-        if (error) {
-            console.log("facebook login didn't work at all")
-            Bert.alert(error.reason, 'danger')
+        this.setState({modalOpen: true})
         }
-    })
-  }
     else {
       this.handleNewPledge(e)
     }
@@ -292,6 +301,11 @@ export default class Navigation extends React.Component {
           />
 
         <div>
+          <SignupModal
+
+            open={this.state.modalOpen}
+            changeOpen={this.handleModalChangeOpen}
+          />
         <Popover
           open={this.state.open}
          anchorEl={this.state.anchorEl}
@@ -299,9 +313,10 @@ export default class Navigation extends React.Component {
          targetOrigin={{horizontal: 'left', vertical: 'top'}}
          onRequestClose={this.handleRequestClose.bind(this)}
        >
+
          <Menu>
            {
-             Meteor.userId() === null ? <MenuItem primaryText="Sign In" onTouchTap={this.handleSignIn}/> :
+             Meteor.userId() === null ? <MenuItem primaryText="Sign In" onTouchTap={this.handleModal}/> :
              <MenuItem primaryText="Sign Out" onTouchTap={this.handleSignOut}/>
            }
            <MenuItem primaryText="Terms &amp; Conditions"  onTouchTap={this.handleTerms}/>

@@ -17,6 +17,7 @@ import Subheader from 'material-ui/Subheader';
 import Loadable from 'react-loadable';
 import Support from '/imports/ui/pages/support.jsx';
 import MessengerPlugin from 'react-messenger-plugin';
+import {SignupModal} from '/imports/ui/components/signupmodal.jsx';
 
 const styles = {
   selectedTab: {
@@ -112,6 +113,19 @@ componentDidMount() {
   }
 }
 
+handleModal = (e) => {
+  this.setState({modalOpen: true})
+}
+
+setModal = () => {
+  let modal = this.state.modalOpen
+  this.setState({modalOpen: !modal})
+}
+
+handleModalChangeOpen = (e) => {
+  this.setState({modalOpen: false})
+}
+
 handleClose = () => this.setState({open: false});
 
   componentDidMount() {
@@ -143,7 +157,7 @@ handleClose = () => this.setState({open: false});
           </Tabs>
 
           <SwipeableViews
-            
+
           index={this.state.slideIndex}
           onChangeIndex={this.handleChange.bind(this)}
         >
@@ -198,11 +212,17 @@ handleClose = () => this.setState({open: false});
                 You need to be logged in to access this page
               </Subheader>
               <div>
-              <RaisedButton onTouchTap={this.handleSignIn} primary={true} label='Login'  />
+              <RaisedButton onTouchTap={this.handleModal} primary={true} label='Login'  />
               </div>
             </div>
           </Dialog>
             : null}
+            <SignupModal
+
+              open={this.state.modalOpen}
+              changeOpen={this.handleModalChangeOpen}
+            />
+
           </div>
 
       }

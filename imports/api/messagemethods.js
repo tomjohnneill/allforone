@@ -8,6 +8,13 @@ import {SimpleSchema} from 'meteor/aldeed:simple-schema';
 import {callSendAPI} from '/imports/api/alertmethods.js';
 
 if (Meteor.isServer) {
+  Messages._ensureIndex({ type: 1, approved: 1 }, { unique: false });
+  Messages._ensureIndex({ receiver: 1, approved: 1 }, { unique: false });
+  Messages._ensureIndex({ sender: 1, approved: 1 }, { unique: false });
+  Messages._ensureIndex({ pledgeId: 1 }, { unique: false });
+  Conversations._ensureIndex({ members: 1 }, { unique: false });
+
+
   Meteor.publish("newBroadcastMessages", function(){
     return Messages.find({type: 'broadcast', approved: false})
   });
@@ -81,10 +88,15 @@ Meteor.methods({
 
 Meteor.publish('allUnreadMessages', function() {
   var userId = this.userId
-  Counts.publish(this, 'theseUnreadMessages', Messages.find({
-    seen: {$ne: userId}, receiver: userId
-  })
-)
+  if (this.userId) {
+    Counts.publish(this, 'theseUnreadMessages', Messages.find({
+      seen: {$ne: userId}, receiver: userId
+    })
+  )
+} else {
+  this.ready()
+}
+
 
   })
 

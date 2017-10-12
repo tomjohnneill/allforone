@@ -7,6 +7,7 @@ Slingshot.fileRestrictions("UsersAvatar", {
 Slingshot.createDirective("UsersAvatar", Slingshot.S3Storage, {
   bucket: "idle-photos", // change this to your s3's bucket name
   region: "eu-west-2",
+  cacheControl: 'max-age=2592000',
 
   acl: "public-read",
 

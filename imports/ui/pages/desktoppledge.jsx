@@ -39,6 +39,7 @@ import AccessTime from 'material-ui/svg-icons/device/access-time';
 import Place from 'material-ui/svg-icons/maps/place';
 import {SignupModal} from '/imports/ui/components/signupmodal.jsx';
 import Badge from 'material-ui/Badge';
+import {changeImageAddress} from '/imports/ui/pages/pledgelist.jsx';
 
 const Loading = () => (
   <div/>
@@ -328,6 +329,14 @@ export class DesktopPledge extends React.Component {
     this.setState({adminDrawerOpen: !this.state.adminDrawerOpen})
   }
 
+  onComplete = (_id, title) => {
+    Meteor.call('tagUserAsJustAdded', _id, title)
+    Meteor.call('runDetailInFuture', this.props.details)
+    Meteor.call('findFriends')
+    Meteor.call('triggerSocialScoreCalculate')
+    Meteor.call('recalculateScore', Meteor.userId())
+  }
+
   handleAnalyticsClick = (e) => {
     this.setState({adminDrawerOpen: !this.state.adminDrawerOpen})
     browserHistory.push('/pages/pledges/' + this.props.pledge.slug + '/' + this.props.pledge._id + '/analytics')
@@ -377,10 +386,10 @@ export class DesktopPledge extends React.Component {
   addOg = (nextProps) => {
     var title = { property: "og:title", content:  nextProps.pledge.title };
     var type = { property: "og:type", content: "article" };
-    var url = { property: "og:url", content: 'https://www.allforone.io/pages/pledges/' + nextProps.pledge.slug + '/' + nextProps.pledge._id };
+    var url = { property: "og:url", content: Meteor.settings.public.ROOT_URL + nextProps.pledge.slug + '/' + nextProps.pledge._id };
     var image = { property: "og:image", content: nextProps.pledge.coverPhoto === undefined ? 'https://www.allforone.io/images/splash.jpg' : nextProps.pledge.coverPhoto };
-    var siteName = { property: "og:site_name", content: "All For One" };
-    var description = { property: "og:description", content: nextProps.pledge.summary ? nextProps.pledge.summary : "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for " + nextProps.pledge.duration.toLowerCase() + " - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?" };
+    var siteName = { property: "og:site_name", content: "Who's In?" };
+    var description = { property: "og:description", content: nextProps.pledge.summary ? nextProps.pledge.summary : "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?" };
 
     DocHead.addMeta(title);
     DocHead.addMeta(type);
@@ -394,7 +403,7 @@ export class DesktopPledge extends React.Component {
     var card = { property: "twitter:card", content: "summary_large_image" };
     var site = {property: "twitter:site", content: "@allforonedotio"};
     var title = {property:"twitter:title", content: nextProps.pledge.title };
-    var description = {property: "twitter:description", content:  "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for " + nextProps.pledge.duration.toLowerCase() + " - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
+    var description = {property: "twitter:description", content:  "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for  - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
     var image = {property: "twitter:image", content: nextProps.pledge.summary ? nextProps.pledge.summary : nextProps.pledge.coverPhoto === undefined ? 'https://www.allforone.io/images/splash.jpg' : nextProps.pledge.coverPhoto}
 
     DocHead.addMeta(card);
@@ -486,7 +495,7 @@ export class DesktopPledge extends React.Component {
                 style={{display: 'flex',
                     alignItems: 'center', flexDirection: 'row',maxWidth: '1200px'}}>
               <div style={{flex: 1, height: '100%', width: '60%'}}>
-                <img src={this.props.pledge.coverPhoto} style={{height: 'auto', maxWidth: '100%'
+                <img src={changeImageAddress(this.props.pledge.coverPhoto, '750xauto')} style={{height: 'auto', maxWidth: '100%'
                   , objectFit: 'cover'}}/>
               </div>
               <div style={{flex: 1, height: '100%', width: '40%', justifyContent: 'space-between', display: 'flex', flexDirection: 'column'}}>
@@ -554,15 +563,20 @@ export class DesktopPledge extends React.Component {
                       />
                   </div>}
 
+
                     <div>
+                      {this.props.pledge.location ?
                     <div style={{alignItems: 'center', display: 'flex', paddingLeft: '32px'}}>
                       <Place style={{marginRight: '16px'}} color={grey500}/>
-                      This is where it's being held
+                      {this.props.pledge.location.place}
                     </div>
+                    : null}
+                    {this.props.pledge.eventDate ?
                     <div style={{alignItems: 'center', display: 'flex', paddingLeft: '32px', marginTop: '12px'}}>
                       <AccessTime style={{marginRight: '16px'}} color={grey500}/>
-                      And it's going to be at this time and date
-                    </div>
+                      {this.props.pledge.eventTime.getHours() + ':' + this.props.pledge.eventTime.getMinutes() + ', ' + this.props.pledge.eventDate.toLocaleDateString()}
+                    </div> : null
+                  }
                     </div>
               </div>
               </div>
@@ -613,10 +627,14 @@ export class DesktopPledge extends React.Component {
                         <div>
                       <RaisedButton
 
-                         primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleModal} />
-                       
+                         primary={true} fullWidth={true}
+                          labelStyle={{letterSpacing: '0.6px', fontWeight: 'bold'}}
+                         label="Join Now" onTouchTap={this.handleModal} />
+
                         </div>:
-                      <RaisedButton primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleFacebook} /> }
+                      <RaisedButton primary={true} fullWidth={true}
+                         labelStyle={{letterSpacing: '0.6px', fontWeight: 'bold'}}
+                        label="Join Now" onTouchTap={this.handleFacebook} /> }
                     </div>
                 </div>}
 
@@ -746,11 +764,13 @@ export class DesktopPledge extends React.Component {
           </div>
 
           <SignupModal
+            _id={this.props.params._id}
+            title={this.props.params.pledge}
             open={this.state.modalOpen}
-            changeOpen={this.handleModalChangeOpen}/>
-          </div>
+            changeOpen={this.handleModalChangeOpen}
+          onComplete={this.onComplete}/>
 
-      }
+
       {/*
       <div>
       <FacebookProvider appId={Meteor.settings.public.FacebookAppId}>
@@ -780,6 +800,8 @@ export class DesktopPledge extends React.Component {
         </Drawer>
 
       </div>
+    }
+  </div>
     )
   }
 }

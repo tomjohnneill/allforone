@@ -32,8 +32,6 @@ if (Meteor.isServer) {
           body: parseInt(this.queryParams['hub.challenge'])
         };
       } else if (this.bodyParams) {
-        console.log(this.bodyParams)
-        console.log(this.bodyParams)
         return {
           statusCode: 200
         }
@@ -46,10 +44,8 @@ if (Meteor.isServer) {
       }
     },
     post: function () {
-      if (this.bodyParams.entry[0].messaging[0].message) {
-        console.log(this.bodyParams.entry[0].messaging[0].message.text)
-      }
-      console.log(this.bodyParams.entry[0].messaging[0].sender.id)
+
+      // Optin on site click
     if (this.bodyParams.entry[0].messaging[0].optin) {
       Meteor.call('updateMessengerId', this.bodyParams.entry[0].messaging[0].sender.id,
       this.bodyParams.entry[0].messaging[0].optin.ref
@@ -66,6 +62,9 @@ if (Meteor.isServer) {
         userMessengerId: userMessengerId
       }})
     }
+
+
+
     if (this.bodyParams.entry[0].messaging[0].message && this.bodyParams.entry[0].messaging[0].message.text) {
 
       if (this.bodyParams.entry[0].messaging[0].message.text === 'Send me the menu') {
@@ -99,10 +98,11 @@ if (Meteor.isServer) {
       "Sorry, it seems we don't have any more suggestions just yet. Come back later for more.")
     }
     if (this.bodyParams.entry[0].messaging[0]) {
-      console.log(this.bodyParams.entry[0].messaging[0])
+
     }
     if (this.bodyParams.entry[0].messaging[0].postback) {
       var postback = this.bodyParams.entry[0].messaging[0].postback
+      console.log(postback)
       if (postback.payload === "GET_STARTED_PAYLOAD") {
         Meteor.call('sendFirstQuestion', this.bodyParams.entry[0].messaging[0].sender.id)
       }
@@ -134,8 +134,20 @@ if (Meteor.isServer) {
         "It seems you've signed up to all the relevant pledges. Maybe start your own?")
         }
       }
+      if (postback.payload.includes(':AnSwEr:')) {
+        console.log('Should be an answer to a detail: ' + postback.payload)
+        Meteor.call('updateDetailFromMessenger', this.bodyParams.entry[0].messaging.sender.id, this.bodyParams.entry[0].messaging.recipient.id, postback.payload)
+      }
       if (this.bodyParams.entry[0].messaging[0]) {
         Meteor.call('findAppId', this.bodyParams.entry[0].messaging[0].sender.id)
+      }
+
+    }
+    if (this.bodyParams.entry[0].messaging[0].message && this.bodyParams.entry[0].messaging[0].message.quick_reply) {
+      var payload = this.bodyParams.entry[0].messaging[0].message.quick_reply.payload
+      if (payload.includes(':AnSwEr:')) {
+        console.log('Should be an answer to a detail: ' + payload)
+        Meteor.call('updateDetailFromMessenger', this.bodyParams.entry[0].messaging[0].sender.id, payload)
       }
     }
     return {

@@ -147,8 +147,8 @@ export class Admin extends React.Component{
       });
       };
 
-  addToGroup (hi) {
-    Meteor.call('changeUserRole', this.state.refinedList, hi)
+  addToGroup  = () => {
+    Meteor.call('changeUserRole', this.state.refinedList, 'admin')
   }
 
   handleAddPledge(id, e, input)  {
@@ -201,7 +201,8 @@ export class Admin extends React.Component{
 
     return(
       <div>
-
+        {Roles.userIsInRole(Meteor.userId(), 'admin') || Meteor.userId() == 'NQCv89bcqjjL6iAQp' ?
+          <div>
         <Tabs
           tabItemContainerStyle={{height: '36px'}}
             value={this.props.params.adminTab}
@@ -263,7 +264,7 @@ export class Admin extends React.Component{
           <Subheader>
             Add to admin
           </Subheader>
-          <FlatButton label='Add to group' onTouchTap={this.addToGroup.bind(this, 'admin')}/>
+          <FlatButton label='Add to group' onTouchTap={this.addToGroup}/>
 
               </div>
 
@@ -315,8 +316,12 @@ export class Admin extends React.Component{
         </div>
         </SwipeableViews>
 
-
-
+      </div>
+      :
+      <div>
+        You do not have permission to access this page
+      </div>
+      }
 
         </div>
 

@@ -10,8 +10,16 @@ import { request } from "meteor/froatsnook:request";
 
 if (Meteor.isServer) {
   // This code only runs on the server
+
+  Meteor.users._ensureIndex({ 'services.facebook.id': 1 }, {unique: false});
+
   Meteor.publish("userData", function () {
-    return Meteor.users.find({_id: this.userId}, {fields: {visits: 0, influence: 0, potentialSuggestions: 0}})
+    if (this.userId) {
+        return Meteor.users.find({_id: this.userId}, {fields: {visits: 0, influence: 0, potentialSuggestions: 0}})
+    } else {
+      this.ready();
+    }
+
   });
 
   Meteor.publish("messengerIDExists", function() {
@@ -23,16 +31,37 @@ if (Meteor.isServer) {
   })
 
   Meteor.publish("userFriends", function() {
-    return Meteor.users.find({}, {
-      fields: {'services.facebook.id' : 1}
-    })
+    if (this.userId) {
+      var userFriends = Meteor.user().friends
+      if (userFriends && userFriends.length > 0) {
+        var friendList = []
+        for (var i = 0; i < userFriends.length; i++) {
+          friendList.append(userFriends[i].id)
+        }
+        return Meteor.users.find({'services.facebook.id': {$in: friendList}}, {
+          fields: {'services.facebook.id' : 1}
+        });
+      } else {
+        this.ready();
+      }
+
+    } else {
+      this.ready();
+    }
+
   })
 
   Meteor.publish("userScores", function() {
-    return Meteor.users.find({}, {
-      fields: {_id: 1, 'profile': 1, 'email.address': 1, score:1, 'services.facebook.id' : 1
+    if (this.userId) {
+      return Meteor.users.find({}, {
+        fields: {_id: 1, 'profile': 1, 'email.address': 1, score:1, 'services.facebook.id' : 1
+      }, sort: {score: -1}, limit: 10}
+      )
     }
-    })
+    else {
+      this.ready()
+    }
+
   })
 
   Meteor.publish('pledgeRoles', function (){
@@ -160,7 +189,7 @@ Meteor.methods({
 
 Meteor.methods({
   changeUserRole: function(list, role) {
-    if (this.userId === 'msfgNtu67nrevfX6c' || this.userId === 'p6ZQiT9b7iWKcyL9D' || Roles.userIsInRole(this.userId, 'admin')) {
+    if (this.userId === 'msfgNtu67nrevfX6c' || this.userId === 'p6ZQiT9b7iWKcyL9D' || this.userId === 'NQCv89bcqjjL6iAQp'  || Roles.userIsInRole(this.userId, 'admin')) {
       Roles.addUsersToRoles(list, role, Roles.GLOBAL_GROUP)
     }
   }

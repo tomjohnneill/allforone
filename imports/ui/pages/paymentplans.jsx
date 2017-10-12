@@ -202,11 +202,13 @@ export class PaymentPlans extends React.Component{
         Subscription payments
       </Subheader>
 
-      {        !this.props.loading && !this.props.pledge.stripe.stripe_user_id && (Meteor.userId() === this.props.pledge.creatorId || Roles.userIsInRole('admin', Roles.GLOBAL_GROUP)
+      {        !this.props.loading && (!this.props.pledge.stripe || !this.props.pledge.stripe.stripe_user_id ) &&
+        (Meteor.userId() === this.props.pledge.creatorId || Roles.userIsInRole('admin', Roles.GLOBAL_GROUP)
         || Roles.userIsInRole('administrator', this.props.params._id)) ?
       <div style={{backgroundColor: 'white' , height: '200px', width: '100%', display: 'flex',
       alignItems: 'center', justifyContent: 'center'}}>
-    <a href={"https://connect.stripe.com/oauth/authorize?response_type=code&client_id=" + Meteor.settings.public.stripe.client_id + "&scope=read_write&" + "state=" + this.props.params._id}
+    <a href={"https://connect.stripe.com/oauth/authorize?response_type=code&client_id=" + Meteor.settings.public.stripe.client_id + "&scope=read_write&state=" + this.props.params._id +
+          "&redirect_uri=" + Meteor.settings.public.ROOT_URL+ '/stripe-redirect'}
     className="stripe-connect light-blue"><span>Connect with Stripe</span></a>
         </div>
         :
@@ -295,7 +297,7 @@ export default createContainer(({params}) => {
   const roleHandler = Meteor.subscribe("pledgeRoles");
 
   return {
-    loading: !subscriptionHandler.ready() || !pledgeUserHandler.ready(),
+    loading: !subscriptionHandler.ready() || !pledgeUserHandler.ready() || !roleHandler.ready(),
     pledge: Pledges.find({_id: params._id}).fetch()[0],
     users: Meteor.users.find({}).fetch(),
     roles: Meteor.roles.find({}).fetch(),

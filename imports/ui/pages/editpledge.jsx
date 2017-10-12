@@ -22,6 +22,8 @@ import Loadable from 'react-loadable';
 import MessengerPlugin from 'react-messenger-plugin';
 import Subheader from 'material-ui/Subheader';
 import Chip from 'material-ui/Chip';
+import TimePicker from 'material-ui/TimePicker';
+import GooglePlaceAutocomplete from 'material-ui-autocomplete-google-places';
 
 var removeMd = require('remove-markdown')
 
@@ -45,7 +47,8 @@ const styles = {
     padding: '10px',
     overflow: 'hidden',
     boxSizing: 'border-box',
-    width: '100%'
+    width: '100%',
+    maxWidth: '800px'
   },
   header: {
     backgroundColor: 'white',
@@ -57,10 +60,23 @@ const styles = {
     display: 'flex',
     marginTop: '10px'
   },
+  flexWrapTitle: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    marginTop: '10px',
+    padding: '5px'
+  },
   bigTitle: {
     width: '50%',
     fontStyle: 'italic',
     color: grey500
+  },
+  bigWrapTitle: {
+    width: '50%',
+    fontStyle: 'italic',
+    minWidth: '250px',
+    color: grey500,
+    boxSizing: 'border-box'
   },
   currentCommitments: {
     textAlign: 'center',
@@ -164,6 +180,21 @@ handleDeadline = (event, date) => {
   this.setState({deadline: date})
 }
 
+handleEventDate = (event, date) => {
+  var deadline = date.toISOString()
+  console.log(date)
+  this.setState({eventDate: date})
+}
+
+
+handleEventTime = (event, date) => {
+
+  console.log(date)
+  this.setState({eventTime: date})
+
+}
+
+
 componentWillReceiveProps(nextProps) {
   if (!nextProps.loading) {
     this.setState({tags: nextProps.pledge.tags ? nextProps.pledge.tags : [],
@@ -180,19 +211,35 @@ submitPledge = (event) => {
   var how = this.state.how ? this.state.how: this.props.pledge.how
   var slug = this.state.slug? this.state.slug: this.props.pledge.slug
   var picture = this.props.pledge.creatorPicture
-  var duration = this.state.duration ? this.state.duration : this.props.pledge.duration
+
   var impact = this.state.impact ? this.state.impact: this.props.pledge.impact ? this.props.pledge.impact : ''
   var summary = this.state.summary ? this.state.summary: this.props.pledge.summary ? this.props.pledge.summary : ''
   var facebookURL = this.state.facebookURL ? this.state.facebookURL : this.props.pledge.facebookURL
   var tags = this.state.tags ? this.state.tags : this.props.pledge.tags
+
+  var eventDate = this.state.eventDate ? this.state.eventDate : this.props.pledge.eventDate
+  var eventTime = this.state.eventTime ? this.state.eventTime : this.props.pledge.eventTime
+  var location = this.state.location ? this.state.location : this.props.pledge.location
+
+  var eventDate
+  if (this.state.hours) {
+    let tempDate = this.state.eventDate
+    tempDate.setHours(this.state.hours)
+    tempDate.setMinutes(this.state.minutes)
+    console.log(tempDate)
+    eventDate = tempDate
+  } else {
+    let tempDate = this.state.eventDate
+    eventDate = tempDate
+  }
+
+
 
   if (title === 'Untitled Pledge' || title === '') {
     Bert.alert('Your pledge needs a title')
   }
   else if (target === '' || target === undefined ) {
     Bert.alert('Your pledge needs a target', 'danger')
-  } else if (duration === '' || duration === undefined) {
-    Bert.alert('Your pledge needs a duration', 'danger')
   } else if (deadline === '' || deadline === undefined) {
     Bert.alert('Your pledge needs a deadline', 'danger')
   } else if (description === '' || description === undefined) {
@@ -212,7 +259,9 @@ submitPledge = (event) => {
       updated: this.props.pledge.updated,
       pledgedUsers: this.props.pledge.pledgedUsers,
       pledgeCount: this.props.pledge.pledgeCount,
-      duration: duration,
+      eventDate: eventDate,
+      eventTime: eventTime,
+      location: location,
       facebookURL: facebookURL,
       impact: impact,
       tags: tags,
@@ -232,6 +281,12 @@ submitPledge = (event) => {
       }
     });
   }
+}
+
+getCoords = (lat, lng, desc) => {
+  console.log(lat, lng);
+  console.log(desc)
+  this.setState({location:{place: desc, location: {type: "Point", coordinates : [lng, lat]}}})
 }
 
 getTags() {
@@ -343,7 +398,7 @@ render() {
       console.log(this.props.thisUser[0].userMessengerId)
       console.log(this.props.pledge)
   return(
-  <div>
+  <div style={{display: 'flex', justifyContent: 'center', backgroundColor: grey200}}>
       <div style={styles.box}>
         <Card>
           <CardHeader
@@ -352,29 +407,17 @@ render() {
               avatar={this.props.pledge.creatorPicture}
             />
           <CardMedia
-            overlay={<CardTitle title={<TextField name='title' multiLine={true}
-            defaultValue={this.state.title ? this.state.title : this.props.pledge.title === 'Untitled Pledge' ? '' : this.props.pledge.title}
-            onChange={this.generateSlug}
-            style={{color: 'white'}}
-            hintText='Enter pledge title'
-            textareaStyle={{color: 'white'}}
-            inputStyle={{color: 'white'}}/>}
-            subtitleStyle={{height: '40px'}}
-            subtitle={
-              <SelectField inputStyle={{color: 'white'}}
-            style={{color: 'white'}}
-            hintText='Duration'
-            labelStyle={{color: 'white'}}
-            hintStyle={{color: 'white'}}
-            onChange={this.handleDuration} value={this.state.duration ?
-              this.state.duration : this.props.duration ? this.props.duration : null}>
-              <MenuItem value={'Once'} primaryText="Once" />
-              <MenuItem value={'One Day'} primaryText="One Day" />
-              <MenuItem value={'One Week'} primaryText="One Week" />
-              <MenuItem value={'Two Weeks'} primaryText="Two Weeks" />
-              <MenuItem value={'One Month'} primaryText="One Month" />
-              <MenuItem value={'One Year'} primaryText="One Year" />
-            </SelectField>}
+            overlay={
+              <CardTitle title={<TextField name='title' multiLine={true}
+                defaultValue={this.state.title ? this.state.title : this.props.pledge.title === 'Untitled Pledge' ? '' : this.props.pledge.title}
+                onChange={this.generateSlug}
+                style={{color: 'white'}}
+                hintText='Enter pledge title'
+                textareaStyle={{color: 'white'}}
+                inputStyle={{color: 'white'}}/>
+              }
+
+
            />}
 
           >
@@ -401,7 +444,56 @@ render() {
                 </div>
               </div>
             }/>
-          <Divider/>
+        </Card>
+          <Card style={{marginTop: '20px'}}>
+
+            <CardTitle
+              title='Event details'
+              children={
+                <div>
+                  <div style={styles.explanation}>
+                    If your pledge has a physical event, set the time, date and location here. This section is optional.
+                  </div>
+                  <div style={styles.flexWrapTitle}>
+                    <div style={styles.bigWrapTitle}>
+                      Event Date:
+                    <div style={styles.smallTitle}>
+                      <DatePicker value={this.state.eventDate ? this.state.eventDate : this.props.pledge.eventDate}
+                        onChange={this.handleEventDate} style={{width: 'auto'}}
+
+
+
+                         hintText="Event Date" textFieldStyle={{width: 'auto'}}/>
+                      <TimePicker value={this.state.eventTime ? this.state.eventTime : this.props.pledge.eventTime}
+                          onChange={this.handleEventTime} style={{width: 'auto'}} hintText="Event Time" textFieldStyle={{width: 'auto'}}/>
+                    </div>
+                    </div>
+                    <div style={styles.bigWrapTitle}>
+                      <div>
+                      Location:
+                      </div>
+                      <div style={{ alignItems: 'center', justifyContent: 'center', width: '100%'}}>
+                        <GooglePlaceAutocomplete
+                          className='autocomplete'
+                          style={{width: '100%'}}
+                          textFieldStyle={{width: '100%'}}
+                          searchText={this.state.location && this.state.location.value ? this.state.location.value: this.props.pledge.location ? this.props.pledge.location.value : ''}
+                          menuItemStyle={{ fontSize: 13,
+                                display: 'block',
+                                paddingRight: 20,
+                                overflow: 'hidden'}}
+                            menuStyle={{cursor: 'default'}}
+                            fullWidth={true}
+                            disableFocusRipple={false}
+                            results={this.getCoords}
+                          />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }/>
+          </Card>
+            <Card style={{marginTop: '20px'}}>
 
             <CardTitle
               title = "Pledge blurb"
@@ -583,7 +675,7 @@ render() {
     }
 
         <RaisedButton label='Submit Application'
-          disabled={!this.props.thisUser[0].userMessengerId && (!Roles.getRolesForUser(Meteor.userId()).includes('admin'))}
+
           onTouchTap={this.submitPledge} secondary={true} fullWidth={true}/>
         <div style={{height: '20px'}}/>
         <FlatButton label='Delete Pledge' onTouchTap={this.handleDelete} fullWidth={true}/>

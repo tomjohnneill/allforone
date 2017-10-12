@@ -8,13 +8,14 @@ import { Session } from 'meteor/session';
 import FontIcon from 'material-ui/FontIcon';
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
+import CircularProgress from 'material-ui/CircularProgress';
 import Subheader from 'material-ui/Subheader';
 
 export  class SignupModal extends React.Component {
   constructor(props) {
     super(props)
 
-    this.state = {login: true}
+    this.state = {login: true, loading: false}
   }
 
   handleSwitchType = (e) => {
@@ -24,9 +25,11 @@ export  class SignupModal extends React.Component {
   }
 
   handleFacebookJoin = (e) => {
+
     var _id = this.props._id
     var title = this.props.title
     e.preventDefault()
+    this.setState({loading: true})
     mixpanel.track("Clicked create account")
     Meteor.loginWithFacebook({ requestPermissions: ['email', 'public_profile', 'user_friends'],
       _id, title },function(error, result) {
@@ -36,7 +39,7 @@ export  class SignupModal extends React.Component {
       }
 
       else {
-
+        if (_id && title && this.props.onComplete) {
         Meteor.call('assignPledgeToUser', _id, title, (error, result) => {
           if (error) {
             Bert.alert(error.reason, 'danger' )
@@ -46,10 +49,14 @@ export  class SignupModal extends React.Component {
           }
         })
       }
+      this.props.changeOpen()
+      }
   }.bind(this));
+  this.setState({loading: false})
   }
 
   handleEmailLogin = (e) => {
+    this.setState({loading: true})
     var _id = this.props._id
     var title = this.props.title
     e.preventDefault()
@@ -64,7 +71,39 @@ export  class SignupModal extends React.Component {
     }
 
     else {
+      this.props.changeOpen()
+      if (id && title && this.props.onComplete) {
+        Meteor.call('assignPledgeToUser', _id, title, (error, result) => {
+          if (error) {
+            Bert.alert(error.reason, 'danger' )
+          } else {
+            this.props.onComplete(_id, title)
+            Bert.alert("Pledge pledged", 'success')
+          }
+        })
+      }
+    }
+    this.setState({loading: false})
+  }
+)
+}
 
+handleEmailSignUp = (e) => {
+  this.setState({loading: true})
+  var _id = this.props._id
+  var title = this.props.title
+  e.preventDefault()
+  var options = {email: this.state.email, password: this.state.password, name: this.state.name}
+  console.log(options)
+  Accounts.createUser(options, (error, result) => {
+  if (error) {
+      Bert.alert(error.reason, 'danger')
+  }
+
+  else {
+    this.props.changeOpen()
+    Meteor.call('addName', this.state.name)
+    if (_id && title && this.props.onComplete) {
       Meteor.call('assignPledgeToUser', _id, title, (error, result) => {
         if (error) {
           Bert.alert(error.reason, 'danger' )
@@ -74,36 +113,10 @@ export  class SignupModal extends React.Component {
         }
       })
     }
-
-  }
-)
-}
-
-handleEmailSignUp = (e) => {
-  var _id = this.props._id
-  var title = this.props.title
-  e.preventDefault()
-  var options = {email: this.state.email, password: this.state.password, name: this.state.name}
-  console.log(options)
-  Accounts.createUser(options, function(error, result) {
-  if (error) {
-      Bert.alert(error.reason, 'danger')
   }
 
-  else {
-    Meteor.call('addName', this.state.name)
-    Meteor.call('assignPledgeToUser', _id, title, (error, result) => {
-      if (error) {
-        Bert.alert(error.reason, 'danger' )
-      } else {
-        this.props.onComplete(_id, title)
-        Bert.alert("Pledge pledged", 'success')
-      }
-    })
-  }
-
-}
-)
+})
+this.setState({loading: false})
 }
 
 handlePassword = (e, newValue) => {
@@ -121,14 +134,22 @@ handleName = (e, newValue) => {
 }
 
   render() {
+    console.log('User: ' + Meteor.user())
+    console.log('Props open: ' + this.props.open)
+
     return (
       <div>
         <Dialog
-          open={this.props.open}
+          open={!Meteor.userId() && this.props.open ? true : false}
           modal={false}
           onRequestClose={this.props.changeOpen}
           contentStyle={{width: '90%', maxWidth: '300px'}}
           >
+          {this.state.loading && !Meteor.userId() ?
+          <div style={{width: '100%', height: '100%', position: 'absolute', top: '0px',left: '0px',zIndex: '20', boxSizing: 'border-box', backgroundColor: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <CircularProgress/>
+          </div>
+          : null }
           <div style={{fontSize: '25px', letterSpacing: '-0.6px', lineHeight: '30px', color: '#484848',
           fontWeight: 700, textAlign: 'center'}}>
             {this.state.login ? "Log into Who's In" : "Sign up to Who's In"}
@@ -152,6 +173,9 @@ handleName = (e, newValue) => {
            <div style={{width: '100%'}}>-- or --
              </div>
 
+
+             {this.state.login ? null :
+               <div>
             <div style={{height: '12px'}}/>
               <TextField underlineShow={false}
                 inputStyle={{border:"1px solid lightgrey", borderRadius: "3px",
@@ -160,9 +184,14 @@ handleName = (e, newValue) => {
                 hintText={'Full Name'}
                 hintStyle={{textIndent: '5px'}}
                 type='name'
+                id = 'fullname'
                 value={this.state.name}
                 onChange={this.handleName}
                 fullWidth={true}/>
+              </div>
+
+            }
+
               <div style={{height: '12px'}}/>
                <TextField underlineShow={false}
                  inputStyle={{border:"1px solid lightgrey", borderRadius: "3px",
@@ -171,6 +200,7 @@ handleName = (e, newValue) => {
                  hintText={'Email'}
                  hintStyle={{textIndent: '5px'}}
                  type='email'
+                 id='email'
                  value={this.state.email}
                  onChange={this.handleEmail}
                  fullWidth={true}/>
@@ -183,6 +213,7 @@ handleName = (e, newValue) => {
                  }}
                  hintStyle={{textIndent: '5px'}}
                  type='password'
+                 id='password'
                  value={this.state.password}
                  onChange={this.handlePassword}
                  hintText={'Password'}

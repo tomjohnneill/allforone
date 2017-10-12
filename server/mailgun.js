@@ -30,10 +30,12 @@ if (Meteor.isServer) {
       console.log(this.bodyParams)
 
       console.log(this.bodyParams['stripped-text'])
+      console.log(this.bodyParams["'In-Reply-To'"])
+      console.log(this.bodyParams['In-Reply-To'])
       if (this.bodyParams['stripped-text']) {
         Meteor.call('addEmailReplyToThread',
         this.bodyParams['stripped-text'], this.bodyParams['sender']
-        , this.bodyParams['recipient'], this.bodyParams['Thread-Topic'])
+        , this.bodyParams['recipient'], this.bodyParams['Thread-Topic'], this.bodyParams['In-Reply-To'])
       }
 
     return {

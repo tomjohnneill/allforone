@@ -56,7 +56,7 @@ export class SocialLeaderboard extends Component {
     var ranking = 0
     for (var user in this.props.userScores) {
 
-      if (friendList.includes(this.props.userScores[user].services.facebook.id) ||
+      if (this.props.userScores[user].services.facebook && friendList.includes(this.props.userScores[user].services.facebook.id) ||
       this.props.userScores[user]._id === Meteor.userId()) {
 
         ranking += 1

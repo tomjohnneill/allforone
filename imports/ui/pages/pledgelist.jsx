@@ -33,6 +33,13 @@ const styles = {
   },
 }
 
+export function changeImageAddress(file, size) {
+  var str = file, replacement = '/' + size + '/';
+  str = str.replace(/\/([^\/]*)$/,replacement+'$1');
+  str = str.replace('idle-photos.s3-eu-west-2.amazonaws.com', Meteor.settings.public.Image_CDN)
+  return(str + '?pass=this')
+}
+
 export class PledgeList extends React.Component{
   constructor(props) {
     super(props);
@@ -134,7 +141,7 @@ export class PledgeList extends React.Component{
 
 
                 <img style={{width: '100%', height: '60%', maxWidth: '100%', objectFit: 'cover', backgroundColor: grey200}}
-                  src={pledge.coverPhoto} />
+                  src={changeImageAddress(pledge.coverPhoto, 'autox250')} />
 
                 <div style={{color: '#484848',
                 fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', width: '100%', marginTop: '6px'}}>
@@ -194,25 +201,6 @@ export class PledgeList extends React.Component{
         cellHeight={220}
         padding={12}>
         {this.props.pledges.map((pledge) => (
-          (Math.random() > 1) ?
-          <div style={{margin: 10, backgroundColor: 'white'}} onTouchTap={(e) => this.handleTap(pledge._id, pledge.slug)}>
-            <ListItem key  ={pledge._id}
-
-              primaryText={pledge.title}
-              secondaryText={'Time Period: ' + (pledge.duration ? pledge.duration: 'Unknown')}
-
-              leftAvatar={pledge.coverPhoto === undefined ? <Avatar>{pledge.title.charAt(0)}</Avatar> : <Avatar src={pledge.coverPhoto}/>}/>
-            <div style={{marginLeft: '72px', paddingBottom: '10px'}}>
-              <div style={{marginRight: '16px', marginBottom: '5px'}}>
-          <LinearProgress style={{marginRight: '16px', marginBottom: '5px'}} color={amber500} mode="determinate"
-             value={pledge.pledgedUsers.length/pledge.target*100} />
-           </div>
-           <div style={{marginTop: '10px'}}>
-            {pledge.pledgedUsers.length} out of {pledge.target}
-            </div>
-          </div>
-          <Divider/>
-          </div> :
 
           <GridTile
             key={pledge._id}
@@ -222,7 +210,7 @@ export class PledgeList extends React.Component{
 
 
             <img style={{width: '100%', height: '50%', maxWidth: '100%', objectFit: 'cover', backgroundColor: grey200}}
-              src={pledge.coverPhoto} />
+              src={changeImageAddress(pledge.coverPhoto, 'autox120')} />
 
             <div style={{color: '#484848',
             fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', width: '100%', marginTop: '6px'}}>
@@ -272,7 +260,7 @@ export class PledgeList extends React.Component{
         <div style={{height: '36px'}}/>
 
         <div style={{height: '36px', width: '100%'}}>
-        
+
         </div>
         </div>
         </DocumentTitle>

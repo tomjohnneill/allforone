@@ -42,9 +42,7 @@ export class ReviewList extends Component {
       <CircularProgress/>
       </div> :
       <div>
-        <Subheader>
-          Reviews
-        </Subheader>
+        
         <List style={{backgroundColor: 'white'}}>
       {this.props.reviews.map((review) => (
             <ListItem

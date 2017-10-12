@@ -348,6 +348,17 @@ Meteor.methods({
 })
 
 if (Meteor.isServer) {
+
+  Details._ensureIndex({ pledgeId: 1 }, { unique: false });
+  Responses._ensureIndex({ pledgeId: 1, userId: 1 }, { unique: false });
+  Pledges._ensureIndex({ title: 1 }, { unique: false });
+  Pledges._ensureIndex({ approved: 1 }, { unique: false });
+  Pledges._ensureIndex({ creatorId: 1 }, { unique: false });
+  Pledges._ensureIndex({ pledgedUsers: 1 }, { unique: false });
+
+
+
+
   Meteor.publish("editor", function (_id) {
     return Pledges.find({_id: _id})
   });
@@ -387,10 +398,15 @@ if (Meteor.isServer) {
   })
 
   Meteor.publish("myPledges", function() {
-    return Pledges.find({pledgedUsers: this.userId}
-      , {fields: {_id : 1, title: 1, slug : 1, creatorPicture : 1, target : 1, pledgedUsers : 1, pledgeCount: 1
-      , duration : 1, creatorId: 1, deadline: 1, creator: 1}}
-      )
+    if (this.userId) {
+      return Pledges.find({pledgedUsers: this.userId}
+        , {fields: {_id : 1, title: 1, slug : 1, creatorPicture : 1, target : 1, pledgedUsers : 1, pledgeCount: 1
+        , duration : 1, creatorId: 1, deadline: 1, creator: 1}}
+        )
+    }
+    else {
+      this.ready();
+    }
   })
 
   Meteor.publish("thesePledges", function(_id) {
@@ -661,7 +677,7 @@ let PledgeSchema = new SimpleSchema({
       if (user && user.profile.picture) {
         return user.profile.picture;
       } else {
-        return '/images/favicon.ico'
+        return '/favicon.ico'
       }
     }
     }
@@ -829,6 +845,22 @@ let PledgeSchema = new SimpleSchema({
     type: String,
     label: "The duration of the pledge",
     optional: true
+  },
+  "eventDate": {
+    type: Date,
+    optional: true,
+    label: "The date of the event",
+  },
+  "eventTime": {
+    type: Date,
+    optional: true,
+    label: "The time of the event"
+  },
+  "location":{
+    type: Object,
+    blackbox: true,
+    optional: true,
+    label: "The location of the event"
   },
   "completedEmailSent" : {
     type: Boolean,

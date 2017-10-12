@@ -14,6 +14,12 @@ const muiTheme = getMuiTheme({
   appBar: {
     height: 50,
   },
+  datePicker: {
+    headerColor: '#0068B2',
+  },
+  timePicker: {
+    headerColor: '#0068B2',
+  },
   fontFamily: 'Raleway, Roboto'
 });
 

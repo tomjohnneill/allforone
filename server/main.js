@@ -19,8 +19,26 @@ import '../imports/api/interestmethods.js';
 import '../imports/api/projectmethods.js';
 import '../imports/api/reviewmethods.js';
 import '../imports/api/stripemethods.js';
+import '../imports/api/imageresize.js';
+import { WebApp } from 'meteor/webapp';
+
+
+WebApp.rawConnectHandlers.use(function(req, res, next) {
+  if (req._parsedUrl.pathname.match(/\.(ttf|ttc|otf|eot|woff|woff2|font\.css|css)$/)) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  next();
+});
 
 Meteor.startup(() => {
+
+  if (Meteor.settings.public.setting === 'test') {
+    WebAppInternals.setBundledJsCssUrlRewriteHook((url) => {
+      return `https://d358qsncn59ak.cloudfront.net${url}&_g_app_v_=${process.env.GALAXY_APP_VERSION_ID}`;
+    });
+    WebAppInternals.setBundledJsCssPrefix(Meteor.settings.CDN_URL)
+  }
+
 
 
   ServiceConfiguration.configurations.remove(
@@ -32,7 +50,6 @@ Meteor.startup(() => {
     {
       $set: {
         appId: Meteor.settings.public.FacebookAppId,
-        loginStyle: 'redirect',
         secret: Meteor.settings.public.FacebookSecret,
       },
     }

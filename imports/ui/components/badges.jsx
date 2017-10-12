@@ -66,16 +66,7 @@ export class Badges extends Component {
     var createdPledges = []
 
     var threadLength = 0
-    var threadsCreated = 0
-    if (user.subscribedThreads) {
-      threadLength = user.subscribedThreads.length
-      for (var i in user.subscribedThreads) {
-        var threadSub = Threads.findOne({_id: user.subscribedThreads[i]})
-        if (threadSub.creatorId === Meteor.userId()) {
-          threadsCreated += 0
-        }
-      }
-    }
+
 
 
     return (
@@ -188,7 +179,7 @@ Badges.propTypes = {
 export default createContainer((props) => {
 
   const scoreHandler = Meteor.subscribe("userData");
-  const threadHandler = Meteor.subscribe("threadComments");
+
 
   console.log(props)
 

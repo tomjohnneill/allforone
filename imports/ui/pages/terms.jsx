@@ -10,8 +10,9 @@ const styles={
   }
 }
 
-export default class Terms extends React.Component {
+export  class Terms extends React.Component {
   render () {
+    return (
   <div style={{paddingLeft  : '16px'}}>
     <Subheader style={styles.subheader}>
       Terms and Conditions
@@ -118,4 +119,5 @@ If you do something that gets us sued, or break any of the promises you make in 
 
     </div>
   </div>
+)
 }}

@@ -198,6 +198,11 @@ export class TestyPage extends Component {
 
   }
 
+  handlePrintImage = (e) => {
+    e.preventDefault()
+    Meteor.call('createDifferentImageSizes', 'https://s3.eu-west-2.amazonaws.com/idle-photos/2WHCJh8582TfitdJa/maths+students.jpg')
+  }
+
   handleEmails = (e) => {
     e.preventDefault()
     Meteor.call('sendPledgeFullEmail')
@@ -303,7 +308,7 @@ export class TestyPage extends Component {
 
                 <FlatButton label='Send to Messenger' onTouchTap={this.handleFacebookNotification}/>
                 <FlatButton label='Messenger second method' onTouchTap={this.handleSendAPI}/>
-                <FlatButton label='Send emails' onTouchTap={this.handleEmails}/>
+                <FlatButton label='Print Image' onTouchTap={this.handlePrintImage}/>
 
                 <RaisedButton label='send detail' onTouchTap={this.sendDetailForm}/>
 

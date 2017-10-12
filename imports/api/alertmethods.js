@@ -22,7 +22,7 @@ Meteor.methods({
         "template_type":"generic",
         "elements":[
            {
-            "title":"Hi, welcome to All For One",
+            "title":"Hi, welcome to Who's In?",
             "image_url":"https://www.allforone.io/images/splash.jpg",
             "subtitle":"We\'ll send you a message when your pledges finish.",
             "default_action": {
@@ -467,7 +467,7 @@ Meteor.methods({
       HTTP.call('POST', 'https://onesignal.com/api/v1/notifications', options, function(error, result) {
     // Process t1he return for any ids that were not recognised to remove them from our database
           if (result && result.data && result.data.errors && result.data.errors.invalid_player_ids) {
-            
+
               result.data.errors.invalid_player_ids.forEach(playerId => {
                   Meteor.users.update({oneSignalUserId: playerId}, {$pull: {oneSignalUserId: playerId}});
               });

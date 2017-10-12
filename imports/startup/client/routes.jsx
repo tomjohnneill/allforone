@@ -20,6 +20,9 @@ import Groups from '../../ui/pages/groups.jsx';
 import Broadcast from '../../ui/pages/broadcast.jsx';
 import StripeRedirect from '../../ui/pages/striperedirect.jsx'
 
+import {Terms} from '../../ui/pages/terms.jsx';
+import {PrivacyPolicy} from '../../ui/pages/privacypolicy.jsx';
+
 import TestyPage from '../../ui/pages/testypage.jsx';
 
 const Loading = () => (
@@ -97,9 +100,9 @@ Meteor.startup( () => {
     <Router history={ browserHistory }>
       <Route path="/" component={ App }>
         <IndexRoute component={ UserTabs } />
-        <Route path='/terms' component={TermsLoadable}/>
+        <Route path='/terms' component={Terms}/>
         <Route path='/testypage' component={TestyPage}/>
-        <Route path='/privacypolicy' component={PrivacyPolicyLoadable}/>
+        <Route path='/privacypolicy' component={PrivacyPolicy}/>
         <Route path='/messages' component={MessagesLoadable}/>
         <Route path='/messages/:conversationId' component={MessagesLoadable}/>
         <Route path='/admin/:adminTab' component={AdminLoadable}/>

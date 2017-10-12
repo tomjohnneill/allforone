@@ -5,6 +5,11 @@ import { Reviews } from '/imports/api/reviews.js';
 import { Pledges } from '/imports/api/pledges.js';
 
 if (Meteor.isServer) {
+  Reviews._ensureIndex({ pledgeId: 1 }, { unique: false });
+  Reviews._ensureIndex({ pledgeId: 1, type: 1 }, { unique: false });
+  Reviews._ensureIndex({ userId: 1}, { unique: false });
+  Reviews._ensureIndex({ userId: 1, type: 1}, { unique: false });
+
   Meteor.publish("pledgeReviews", function (pledgeId) {
     return Reviews.find({pledgeId: pledgeId, type: 'volunteer'})
   });

@@ -39,6 +39,9 @@ import MediaQuery from 'react-responsive';
 import DesktopPledge from '/imports/ui/pages/desktoppledge.jsx';
 import {SignupModal} from '/imports/ui/components/signupmodal.jsx';
 import Badge from 'material-ui/Badge';
+import {changeImageAddress} from '/imports/ui/pages/pledgelist.jsx';
+import AccessTime from 'material-ui/svg-icons/device/access-time';
+import Place from 'material-ui/svg-icons/maps/place';
 
 const Loading = () => (
   <div/>
@@ -216,6 +219,8 @@ export class DynamicPledge extends React.Component {
   }
 
 
+
+
   handleFacebook = (e) => {
 
       var title = this.props.params.pledge
@@ -364,10 +369,10 @@ export class DynamicPledge extends React.Component {
   addOg = (nextProps) => {
     var title = { property: "og:title", content:  nextProps.pledge.title };
     var type = { property: "og:type", content: "article" };
-    var url = { property: "og:url", content: 'https://www.allforone.io/pages/pledges/' + nextProps.pledge.slug + '/' + nextProps.pledge._id };
+    var url = { property: "og:url", content: Meteor.settings.public.ROOT_URL + nextProps.pledge.slug + '/' + nextProps.pledge._id };
     var image = { property: "og:image", content: nextProps.pledge.coverPhoto === undefined ? 'https://www.allforone.io/images/splash.jpg' : nextProps.pledge.coverPhoto };
-    var siteName = { property: "og:site_name", content: "All For One" };
-    var description = { property: "og:description", content: nextProps.pledge.summary ? nextProps.pledge.summary : "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for " + nextProps.pledge.duration.toLowerCase() + " - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?" };
+    var siteName = { property: "og:site_name", content: "Who's In?" };
+    var description = { property: "og:description", content: nextProps.pledge.summary ? nextProps.pledge.summary : "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for  - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?" };
 
     DocHead.addMeta(title);
     DocHead.addMeta(type);
@@ -381,8 +386,8 @@ export class DynamicPledge extends React.Component {
     var card = { property: "twitter:card", content: "summary_large_image" };
     var site = {property: "twitter:site", content: "@allforonedotio"};
     var title = {property:"twitter:title", content: nextProps.pledge.title };
-    var description = {property: "twitter:description", content:  "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for " + nextProps.pledge.duration.toLowerCase() + " - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
-    var image = {property: "twitter:image", content: nextProps.pledge.summary ? nextProps.pledge.summary : nextProps.pledge.coverPhoto === undefined ? 'https://www.allforone.io/images/splash.jpg' : nextProps.pledge.coverPhoto}
+    var description = {property: "twitter:description", content: nextProps.pledge.summary ? nextProps.pledge.summary : "I just agreed to " +nextProps.pledge.title.toLowerCase() + " for - as long as " + (nextProps.pledge.target-nextProps.pledge.pledgedUsers.length).toString() + " more people do the same. Care to join me?"}
+    var image = {property: "twitter:image", content:  nextProps.pledge.coverPhoto === undefined ? 'https://www.allforone.io/images/splash.jpg' : nextProps.pledge.coverPhoto}
 
     DocHead.addMeta(card);
     DocHead.addMeta(site);
@@ -404,6 +409,7 @@ export class DynamicPledge extends React.Component {
       DocHead.setTitle(nextProps.pledge.title);
       this.addOg(nextProps)
       this.addTwitterMeta(nextProps)
+
     }
     if (!nextProps.loading && nextProps.user !== undefined && nextProps.user.justAddedPledge) {
 
@@ -527,7 +533,7 @@ export class DynamicPledge extends React.Component {
             <CardMedia
 
             >
-              <img src={this.props.pledge.coverPhoto === undefined ? '/images/white.png' : this.props.pledge.coverPhoto} />
+              <img src={this.props.pledge.coverPhoto === undefined ? '/images/white.png' : changeImageAddress(this.props.pledge.coverPhoto, 'autox250')} />
             </CardMedia>
             <CardTitle
               style={{overflowX:'hidden'}}
@@ -555,6 +561,20 @@ export class DynamicPledge extends React.Component {
                         days to go...
                       </div>
                     </div>
+                  </div>
+                  <div>
+                    {this.props.pledge.location ?
+                  <div style={{alignItems: 'center', display: 'flex', paddingLeft: '32px', marginTop: '16px'}}>
+                    <Place style={{marginRight: '16px'}} color={grey500}/>
+                    {this.props.pledge.location.place}
+                  </div>
+                  : null}
+                  {this.props.pledge.eventDate ?
+                  <div style={{alignItems: 'center', display: 'flex', paddingLeft: '32px', marginTop: '12px'}}>
+                    <AccessTime style={{marginRight: '16px'}} color={grey500}/>
+                    {this.props.pledge.eventTime.getHours() + ':' + this.props.pledge.eventTime.getMinutes() + ', ' + this.props.pledge.eventDate.toLocaleDateString()}
+                  </div> : null
+                }
                   </div>
                 </div>
 
@@ -601,10 +621,12 @@ export class DynamicPledge extends React.Component {
                     <div>
                   <RaisedButton
 
-                     primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleModal} />
+                     primary={true} fullWidth={true} labelStyle={{letterSpacing: '0.6px', fontWeight: 'bold'}}
+                      label="Join Now" onTouchTap={this.handleModal} />
 
                     </div>:
-                  <RaisedButton primary={true} fullWidth={true} label="Join Now" onTouchTap={this.handleFacebook} /> }
+                  <RaisedButton primary={true} fullWidth={true}  labelStyle={{letterSpacing: '0.6px', fontWeight: 'bold'}}
+                    label="Join Now" onTouchTap={this.handleFacebook} /> }
                 </div>
             </div>}
 

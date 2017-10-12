@@ -59,6 +59,15 @@ const styles = {
     fontStyle: 'italic',
     color: grey500
   },
+  number: {
+    color: '#FF9800',
+    fontSize: '20px',
+
+  },
+  bottomBit: {
+    color: grey500,
+    marginTop: '5px'
+  },
   currentCommitments: {
     textAlign: 'center',
 
@@ -110,7 +119,7 @@ export class ProfilePledges extends Component {
     } else {
     return (
       <div>
-      <Subheader>Your pledges</Subheader>
+      
         <List>
           <div style={{display: 'flex'}}>
 
@@ -125,7 +134,7 @@ export class ProfilePledges extends Component {
               nestedListStyle={{marginLeft: '0px'}}
               nestedItems={
                 this.props.pledges.map((pledge) => (
-                  (pledge.title !== 'Untitled Pledge' && pledge.pledgedUsers.includes(Meteor.userId())) ?
+                  (pledge.title !== 'Untitled Pledge' && pledge.pledgedUsers && pledge.pledgedUsers.includes(Meteor.userId()) ) ?
             <ListItem
               primaryText={pledge.title}
               secondaryText={pledge.duration === 'Once' ? 'Just Once' : 'For ' + pledge.duration}
@@ -136,28 +145,34 @@ export class ProfilePledges extends Component {
               innerDivStyle={{marginLeft: '0px'}}
               nestedItems={[
                 <ListItem
-
-                  innerDivStyle={{marginLeft: '0px'}}
+                  style={{paddingTop: '0px'}}
+                  innerDivStyle={{marginLeft: '0px', paddingTop: '0px', paddingBottom: '0px'}}
                   children={
                   <div>
                     <div onTouchTap={this.handleMoreDetail.bind(this, pledge._id, pledge.slug)}>
-                    <LinearProgress color={amber500} mode="determinate" value={pledge.pledgedUsers.length/pledge.target*100} />
+                      <div>
 
-                    <div style={styles.cardTitle}>
-                      <div style={styles.bigTitle}>
-                        Commitments:
-                      <div style={styles.smallTitle}>
-                        <div style={styles.currentCommitments}><b>{pledge.pledgedUsers.length}</b> people</div>
-                        <div style={styles.targetCommitments}>out of {pledge.target}</div>
-                      </div>
-                      </div>
-                      <div style={styles.bigTitle}>
-                        Deadline:
-                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                          {pledge.deadline ? dateDiffInDays(new Date(),pledge.deadline) : 'Some'} days
+                        <LinearProgress  style={{height: '10px', borderRadius: '4px'}} color={amber500} mode="determinate" value={pledge.pledgeCount/pledge.target*100} />
+                        <div style={{display: 'flex', paddingTop: '16px'}}>
+                          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
+                            <div style={styles.number}>
+                              {pledge.pledgeCount}
+                            </div>
+                            <div style={styles.bottomBit}>
+                              /{pledge.target} people
+                            </div>
+                          </div>
+
+                          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1}}>
+                            <div style={styles.number}>
+                              {dateDiffInDays(new Date(),pledge.deadline)}
+                            </div>
+                            <div style={styles.bottomBit}>
+                              days to go...
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
                     </div>
 
 

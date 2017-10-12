@@ -10,13 +10,13 @@ export const oneSignal=function() {
                 enable: false
             },
             'welcomeNotification': {
-                title: 'All For One',
+                title: "Who's In",
                 message: 'Thanks for subscribing to our notifications!',
                 url: 'https://www.allforone.io/profile',
             },
             promptOptions: {
                 /* Change bold title, limited to 30 characters */
-                siteName: 'All For One',
+                siteName: "Who's In",
                 /* Subtitle, limited to 90 characters */
                 actionMessage: "We'd like to let you know when your pledges change, and what your friends are up to.",
                 /* Example notification title */
