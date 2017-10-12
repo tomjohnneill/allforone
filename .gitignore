@@ -1,3 +1,4 @@
 node_modules/
 .meteor/settings.json
 .meteor/settings-development.json
+.meteor/settings-test.json
