@@ -162,7 +162,7 @@ export class PaymentPlans extends React.Component{
     e.preventDefault()
     this.setState({ processing: true });
     this.checkout.open({
-      name: 'All For One',
+      name: "Who's In",
       description: '£5 per month supporter',
       currency: 'gbp',
       amount: 500,

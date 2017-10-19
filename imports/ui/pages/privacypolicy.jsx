@@ -15,7 +15,7 @@ export  class PrivacyPolicy extends React.Component {
     return (
   <div style={{paddingLeft  : '16px', paddingRight: '16px', fontSize: ''}}>
     <Subheader style={styles.subheader}>Privacy policy</Subheader>
-<p>This privacy policy applies between you, the User of this Website and All For One, the owner and provider of this Website. All For One takes the privacy of your information very seriously. This privacy policy applies to our use of any and all Data collected by us or provided by you in relation to your use of the Website.  <b>Please read this privacy policy carefully</b>.
+<p>This privacy policy applies between you, the User of this Website and Who's In, the owner and provider of this Website. Who's In takes the privacy of your information very seriously. This privacy policy applies to our use of any and all Data collected by us or provided by you in relation to your use of the Website.  <b>Please read this privacy policy carefully</b>.
 </p>
 
 <Subheader style={styles.subheader}>Definitions and interpretation</Subheader>
@@ -26,7 +26,7 @@ export  class PrivacyPolicy extends React.Component {
         <br/>
             <b>Data:</b>
             <br/>
-            collectively all information that you submit to All For One via the Website.  This definition incorporates, where applicable, the definitions provided in the Data Protection Act 1998;
+            collectively all information that you submit to Who's In via the Website.  This definition incorporates, where applicable, the definitions provided in the Data Protection Act 1998;
 
 
 <br/>
@@ -36,12 +36,12 @@ export  class PrivacyPolicy extends React.Component {
 
 <br/>
 
-            <b>All For One,
+            <b>Who's In,
                 we</b> or <b>us:</b>
                 <br/>
 
 
-                                All For One of 107 Charterhouse Street,   London, EC1M 6HW;
+                                Who's In of 107 Charterhouse Street,   London, EC1M 6HW;
 
 
 
@@ -55,7 +55,7 @@ export  class PrivacyPolicy extends React.Component {
 <br/>
             <b>User</b> or <b>you:</b>
             <br/>
-            any third party that accesses the Website and is not either (i) employed by All For One and acting in the course of their employment or (ii) engaged as a consultant or otherwise providing services to All For One and accessing the Website in connection with the provision of such services; and
+            any third party that accesses the Website and is not either (i) employed by Who's In and acting in the course of their employment or (ii) engaged as a consultant or otherwise providing services to Who's In and accessing the Website in connection with the provision of such services; and
 <br/>
 
             <b>Website:</b>
@@ -86,7 +86,7 @@ export  class PrivacyPolicy extends React.Component {
 
 <Subheader style={styles.subheader}>Scope of this privacy policy</Subheader>
 <ol class="clauses">
-    <li>This privacy policy applies only to the actions of All For One and Users with respect to this Website.  It does not extend to any websites that can be accessed from this Website including, but not limited to, any links we may provide to social media websites.</li>
+    <li>This privacy policy applies only to the actions of Who's In and Users with respect to this Website.  It does not extend to any websites that can be accessed from this Website including, but not limited to, any links we may provide to social media websites.</li>
 </ol>
 
 
@@ -120,7 +120,7 @@ export  class PrivacyPolicy extends React.Component {
 <Subheader style={styles.subheader}>Our use of Data</Subheader>
 <ol class="clauses">
 
-    <li>For purposes of the Data Protection Act 1998, All For One is the "data controller".</li>
+    <li>For purposes of the Data Protection Act 1998, Who's In is the "data controller".</li>
     <li>We will retain any Data you submit for 6 months.</li>
 
 
@@ -152,7 +152,7 @@ export  class PrivacyPolicy extends React.Component {
 <Subheader style={styles.subheader}>Third party websites and services</Subheader>
 <ol class="clauses">
 
-    <li>All For One may, from time to time, employ the services of other parties for dealing with certain processes necessary for the operation of the Website. The providers of such services do not have access to certain personal Data provided by Users of this Website.
+    <li>Who's In may, from time to time, employ the services of other parties for dealing with certain processes necessary for the operation of the Website. The providers of such services do not have access to certain personal Data provided by Users of this Website.
     </li>
 
 
@@ -167,7 +167,7 @@ export  class PrivacyPolicy extends React.Component {
 
 <Subheader style={styles.subheader}>Changes of business ownership and control</Subheader>
 <ol class="clauses">
-    <li>All For One may, from time to time, expand or reduce our business and this may involve the sale and/or the transfer of control of all or part of All For One.  Data provided by Users will, where it is relevant to any part of our business so transferred, be transferred along with that part and the new owner or newly controlling party will, under the terms of this privacy policy, be permitted to use the Data for the purposes for which it was originally supplied to us.</li>
+    <li>Who's In may, from time to time, expand or reduce our business and this may involve the sale and/or the transfer of control of all or part of Who's In.  Data provided by Users will, where it is relevant to any part of our business so transferred, be transferred along with that part and the new owner or newly controlling party will, under the terms of this privacy policy, be permitted to use the Data for the purposes for which it was originally supplied to us.</li>
 
 
     <li>We may also disclose Data to a prospective purchaser of our business or any part of it.</li>
@@ -205,13 +205,13 @@ export  class PrivacyPolicy extends React.Component {
 <ol class="clauses">
 
 
-    <li>You have the right to ask for a copy of any of your personal Data held by All For One (where such Data is held) on payment of a small fee, which will not exceed &#163;50.</li>
+    <li>You have the right to ask for a copy of any of your personal Data held by Who's In (where such Data is held) on payment of a small fee, which will not exceed &#163;50.</li>
 </ol>
 
 
 <Subheader style={styles.subheader}>Security</Subheader>
 <ol class="clauses">
-    <li>Data security is of great importance to All For One and to protect your Data we have put in place suitable physical, electronic and managerial procedures to safeguard and secure Data collected via this Website.</li>
+    <li>Data security is of great importance to Who's In and to protect your Data we have put in place suitable physical, electronic and managerial procedures to safeguard and secure Data collected via this Website.</li>
 
 
     <li>If password access is required for certain parts of the Website, you are responsible for keeping this password confidential.</li>
@@ -230,12 +230,12 @@ export  class PrivacyPolicy extends React.Component {
 
     <li>This Website may place and access certain Cookies on your computer.
 
-                All For One uses Cookies to improve your experience of using the Website.
+                Who's In uses Cookies to improve your experience of using the Website.
 
 
 
 
-        All For One has carefully chosen these Cookies and has taken steps to ensure that your privacy is protected and respected at all times.</li>
+        Who's In has carefully chosen these Cookies and has taken steps to ensure that your privacy is protected and respected at all times.</li>
 
 
 
@@ -243,7 +243,7 @@ export  class PrivacyPolicy extends React.Component {
 
 
 
-    <li>Before the Website places Cookies on your computer, you will be presented with a message bar requesting your consent to set those Cookies.  By giving your consent to the placing of Cookies, you are enabling All For One to provide a better experience and service to you.  You may, if you wish, deny consent to the placing of Cookies; however certain features of the Website may not function fully or as intended.</li>
+    <li>Before the Website places Cookies on your computer, you will be presented with a message bar requesting your consent to set those Cookies.  By giving your consent to the placing of Cookies, you are enabling Who's In to provide a better experience and service to you.  You may, if you wish, deny consent to the placing of Cookies; however certain features of the Website may not function fully or as intended.</li>
 
 
 
@@ -303,9 +303,9 @@ export  class PrivacyPolicy extends React.Component {
 
 <Subheader style={styles.subheader}>Changes to this privacy policy</Subheader>
 <ol class="clauses">
-    <li>All For One reserves the right to change this privacy policy as we may deem necessary from time to time or as may be required by law.  Any changes will be immediately posted on the Website and you are deemed to have accepted the terms of the privacy policy on your first use of the Website following the alterations.
+    <li>Who's In reserves the right to change this privacy policy as we may deem necessary from time to time or as may be required by law.  Any changes will be immediately posted on the Website and you are deemed to have accepted the terms of the privacy policy on your first use of the Website following the alterations.
         <br /><br />
-        You may contact All For One by email at contact@allforone.io.
+        You may contact Who's In by email at contact@allforone.io.
         <br /><br /></li>
 </ol>
 

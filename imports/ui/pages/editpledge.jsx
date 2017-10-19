@@ -584,7 +584,7 @@ render() {
         <CardTitle title='Add a cover photo'
           children={
             <div style={styles.explanation}>
-              This is the first thing that people will see when they come across your pledge, both on All For One and on social media. Choose an image that’s crisp and text-free.
+              This is the first thing that people will see when they come across your pledge, both on Who's In and on social media. Choose an image that’s crisp and text-free.
             </div>
           }
         />
@@ -648,7 +648,7 @@ render() {
         <Card style={{marginTop: '20px'}}>
         <CardTitle title='Submit Application' children={
           <div style={styles.explanation}>
-            Before your pledge appears on the front page of All For One, we will get in contact with you to talk through your pledge, and work out how best we can work together to make it happen.
+            Before your pledge appears on the front page of Who's In, we will get in contact with you to talk through your pledge, and work out how best we can work together to make it happen.
           </div>
           }/>
         {this.props.thisUser[0].userMessengerId || !this.state.renderMessenger ? null :

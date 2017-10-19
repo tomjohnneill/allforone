@@ -49,7 +49,8 @@ const style = {
     margin: '0px',
     boxShadow: null,
     paddingLeft: '16px',
-    backgroundColor: 'white'
+    backgroundColor: 'white',
+    background: 'linear-gradient(0deg, #ffffff, #f7f7f7)'
   },
   otherAnchor :{
     float: 'right',

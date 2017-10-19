@@ -152,7 +152,7 @@ export class Project extends React.Component{
     };
     var newBoard = {
       name: this.props.pledges[0].title,
-      desc: 'This is a board created by the All For One for the purpose of ' + this.props.pledges[0].title,
+      desc: "This is a board created by the Who's In for the purpose of " + this.props.pledges[0].title,
     };
     Trello.post('/boards/', newBoard, creationSuccess)
   }

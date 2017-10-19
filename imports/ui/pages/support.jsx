@@ -173,7 +173,7 @@ export default class Support extends React.Component{
     e.preventDefault()
     this.setState({ processing: true });
     this.checkout.open({
-      name: 'All For One',
+      name: "Who's In",
       description: '£5 per month supporter',
       currency: 'gbp',
       amount: 500,
@@ -201,7 +201,7 @@ export default class Support extends React.Component{
                 If you think our projects are a good idea, we'd really appreciate it if you'd help us cover our running costs for a few pounds per month.
               </p>
               <div style={{display: 'flex', width: '100%', justifyContent: 'center'}}>
-              <RaisedButton primary={true} label ='Support All For One' onTouchTap={this.open}/>
+              <RaisedButton primary={true} label ="Support Who's In" onTouchTap={this.open}/>
               </div>
             </div>
             </div>

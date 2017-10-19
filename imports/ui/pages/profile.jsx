@@ -90,7 +90,7 @@ const styles = {
   boxShadow: 'inherit'
 },
   boxHeader: {
-    fontSize: '18px', letterSpacing: '-0.6px', lineHeight: '30px', color: '#484848', backgroundColor: grey100,
+    fontSize: '18px', letterSpacing: '-0.6px', lineHeight: '30px', color: '#484848', backgroundColor: '#ece9e4',
     fontWeight: 700, paddingLeft: '16px', paddingTop: '6px', paddingBottom: '6px', marginBottom: '10px'
   },
   headerbox: {
@@ -434,7 +434,7 @@ export class Profile extends Component {
         </div>
        :
           <div style={styles.box}>
-            <div style={{backgroundColor: grey700, height: '40px', color: '#FFF', fontWeight: 'bold', fontSize: '18px', letterSpacing: '-0.6px',
+            <div style={{backgroundColor: '#433c32', height: '40px', color: '#FFF', fontWeight: 'bold', fontSize: '18px', letterSpacing: '-0.6px',
                 width: '100%',  marginTop: '24px', marginBottom: '14px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center'}}>
               <div style={styles.realheaderbox}>
                 Dashboard

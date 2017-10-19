@@ -305,7 +305,7 @@ export class PledgeAnalytics extends React.Component{
     var trafficSourceDataRows = [
       ['Facebook', facebookCount],
       ['Twitter', twitterCount],
-      ['All For One', allforoneCount],
+      ["Who's In", allforoneCount],
       ['Direct', directCount],
       ['LinkedIn', linkedInCount],
       ['Google', googleCount],

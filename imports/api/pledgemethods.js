@@ -941,7 +941,7 @@ function htmlString(pledge) {
                 <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
               &#13;
                   <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
-            <p class="size-20" style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; font-size: 20px !important; line-height: 28px !important; text-align: center;" lang="x-size-20" align="center" xml:lang="x-size-20"><span class="font-roboto" style="line-height: inherit;">ALL FOR ONE</span></p>&#13;
+            <p class="size-20" style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; font-size: 20px !important; line-height: 28px !important; text-align: center;" lang="x-size-20" align="center" xml:lang="x-size-20"><span class="font-roboto" style="line-height: inherit;">Who's In</span></p>&#13;
           </div>&#13;
               &#13;
                 </div>&#13;
@@ -1154,10 +1154,10 @@ function htmlString(pledge) {
                     <div style="line-height: inherit; margin: 10px 20px;">&#13;
                       &#13;
                       <div style="font-size: 12px; line-height: 19px;">&#13;
-                        <div style="line-height: inherit;">All For One</div>&#13;
+                        <div style="line-height: inherit;">Who's In</div>&#13;
                       </div>&#13;
                       <div style="font-size: 12px; line-height: 19px; margin-top: 18px;">&#13;
-                        <div style="line-height: inherit;">You are receiving this because you subscribed to a pledge on All For One</div>&#13;
+                        <div style="line-height: inherit;">You are receiving this because you subscribed to a pledge on Who's In</div>&#13;
                       </div>&#13;
                       <!--[if mso]>&nbsp;<![endif]-->&#13;
                     </div>&#13;
@@ -1204,7 +1204,7 @@ Meteor.methods({
           html: htmlString(pledge),
           text: `No Images? Click here
 
-                ALL FOR ONE
+                Who's In
 
                 Congratulations!
 
@@ -1222,10 +1222,10 @@ Meteor.methods({
 
                 This is what the pledge is about
 
-                All For One
+                Who's In
 
                 You are receiving this because you subscribed to
-                a pledge on All For One
+                a pledge on Who's In
 
                 Preferences | Unsubscribe`
         };
@@ -1344,7 +1344,7 @@ function pledgeListHTML(pledgeList) {
                   <div class="column" style="text-align: left; color: #8e959c; font-size: 14px; line-height: 21px; font-family: sans-serif; max-width: 600px !important; min-width: 320px !important; width: 600px !important; transition: width 0.25s ease-in-out, max-width 0.25s ease-in-out; display: table-cell; float: none !important; vertical-align: top;" align="left">&#13;
                 &#13;
                     <div style="margin-left: 20px; margin-right: 20px; line-height: inherit;">&#13;
-              <p class="size-20" style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; font-size: 20px !important; line-height: 28px !important; text-align: center;" lang="x-size-20" align="center" xml:lang="x-size-20"><span class="font-roboto" style="line-height: inherit;">ALL FOR ONE</span></p>&#13;
+              <p class="size-20" style="margin-top: 0; margin-bottom: 0; font-family: roboto,tahoma,sans-serif; font-size: 20px !important; line-height: 28px !important; text-align: center;" lang="x-size-20" align="center" xml:lang="x-size-20"><span class="font-roboto" style="line-height: inherit;">Who's In</span></p>&#13;
             </div>&#13;
                 &#13;
                   </div>&#13;
@@ -1387,10 +1387,10 @@ function pledgeListHTML(pledgeList) {
                       <div style="line-height: inherit; margin: 10px 20px;">&#13;
                         &#13;
                         <div style="font-size: 12px; line-height: 19px;">&#13;
-                          <div style="line-height: inherit;">All For One</div>&#13;
+                          <div style="line-height: inherit;">Who's In</div>&#13;
                         </div>&#13;
                         <div style="font-size: 12px; line-height: 19px; margin-top: 18px;">&#13;
-                          <div style="line-height: inherit;">You're receiving this because you subscribed to a pledge on All For One</div>&#13;
+                          <div style="line-height: inherit;">You're receiving this because you subscribed to a pledge on Who's In</div>&#13;
                         </div>&#13;
                         <!--[if mso]>&nbsp;<![endif]-->&#13;
                       </div>&#13;
@@ -1444,13 +1444,13 @@ Meteor.methods({
 
   for (var i=0;i<emailList.length;i++) {
     var data = {
-        from: 'All For One <noreply@allforone.io>',
+        from: "Who's In <noreply@allforone.io>",
         to: emailList[i],
         subject: 'How else can you help the planet?',
         html: pledgeListHTML(pledgeList),
         text: `No Images? Click here
 
-              ALL FOR ONE
+              Who's In
 
               We've got some new pledges for you
 
@@ -1466,10 +1466,10 @@ Meteor.methods({
 
               Signups: 1 out of 100
 
-              All For One
+              Who's In
 
               You're receiving this because you subscribed to
-              a pledge on All For One
+              a pledge on Who's In
 
               Preferences | Unsubscribe`
       };

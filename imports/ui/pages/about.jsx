@@ -31,7 +31,7 @@ export default class About extends React.Component {
 
   <div style={{paddingLeft  : '16px', paddingRight: '16px'}}>
     <div style={styles.title}>
-      About All For One
+      About Who's In
     </div>
     <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
       <img style={{width: '70%', zIndex: '-5', marginBottom: '-20px'}} src='/images/splash.jpg'/>

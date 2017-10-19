@@ -268,7 +268,7 @@ export class Analytics extends React.Component{
     var trafficSourceDataRows = [
       ['Facebook', facebookCount],
       ['Twitter', twitterCount],
-      ['All For One', allforoneCount],
+      ["Who's In", allforoneCount],
       ['Direct', directCount],
       ['LinkedIn', linkedInCount],
       ['Google', googleCount],
@@ -363,7 +363,7 @@ export class Analytics extends React.Component{
     return (
       <div>
         <Subheader>
-          Analytics - who is looking at All For One pledges
+          Analytics - who is looking at Who's In pledges
         </Subheader>
         <Divider/>
         <Subheader style={{height: '36px'}}>

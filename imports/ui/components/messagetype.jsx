@@ -112,7 +112,7 @@ export class MessageType extends React.Component {
                   style={{padding: '0px', zIndex: 2}}
                   badgeStyle={{zIndex: 2, color: this.state.allforone ? 'white' : grey200}}
                 >
-              <IconButton tooltip='Use All For One'
+              <IconButton tooltip="Use Who's In"
                 >
              <FontIcon
                color = {this.state.allforone ? '#FF9800' : grey200}
@@ -206,7 +206,7 @@ export class MessageType extends React.Component {
                   style={{padding: '0px', zIndex: 2}}
                   badgeStyle={{zIndex: 2, color: this.state.allforone ? 'white' : grey200}}
                 >
-              <IconButton tooltip='Use All For One'
+              <IconButton tooltip="Use Who's In"
                 >
              <FontIcon
                color = {this.state.allforone ? '#FF9800' : grey200}
