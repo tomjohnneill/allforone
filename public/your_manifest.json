@@ -1,6 +1,6 @@
 {
-  "name": "All For One",
-  "short_name": "All For One",
+  "name": "Who's In",
+  "short_name": "Who's In",
   "start_url": "/",
   "display": "standalone",
   "gcm_sender_id": "482941778795",
